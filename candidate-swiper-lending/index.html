@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ResumeMatch AI - автоматизация первичного отбора кандидатов с помощью искусственного интеллекта. Экономьте часы на разборе резюме и находите лучших кандидатов быстрее.">
+    <meta name="keywords" content="AI рекрутинг, автоматизация отбора, анализ резюме, HR технологии, подбор персонала">
+    <title>ResumeMatch AI - Умный отбор кандидатов</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header__content">
+                <div class="logo">
+                    <img src="assets/logo.svg" alt="ResumeMatch AI" class="logo__img">
+                    <span class="logo__text">ResumeMatch AI</span>
+                </div>
+                <button class="btn btn--primary">Зарегистрироваться</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <canvas id="heroCanvas" class="hero__canvas"></canvas>
+            <div class="container">
+                <h1 class="hero__title">
+                    <span class="hero__title-line">Превратите</span>
+                    <span class="hero__title-line">гору резюме</span>
+                    <span class="hero__title-line">в поток</span>
+                    <span class="hero__title-line hero__title-line--highlight">идеальных кандидатов</span>
+                </h1>
+                <p class="hero__subtitle">ИИ анализирует резюме и показывает только самое важное в формате свайпов. Экономьте часы на первичном отборе и находите лучших кандидатов быстрее.</p>
+                <div class="hero__cta">
+                    <button class="btn btn--primary btn--large">Попробовать бесплатно</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="how-it-works">
+            <div class="container">
+                <div class="how-it-works__content">
+                    <div class="how-it-works__text">
+                        <h2>Как это работает</h2>
+                        <p>Загрузите вакансию и резюме кандидатов. Наш ИИ проанализирует каждое резюме и покажет вам только ключевую информацию в удобном формате свайпов, как в Tinder. Выбирайте кандидатов быстро и эффективно.</p>
+                    </div>
+                    <div class="how-it-works__image">
+                        <div class="mobile-frame">
+                            <iframe src="http://localhost/" frameborder="0" class="interface-preview" scrolling="no"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="benefits">
+            <div class="container">
+                <h2>Почему ResumeMatch AI</h2>
+                <div class="benefits__grid">
+                    <div class="benefit-card">
+                        <h3>Экономия времени</h3>
+                        <p>Сократите время на первичный отбор на 80%</p>
+                    </div>
+                    <div class="benefit-card">
+                        <h3>Умный анализ</h3>
+                        <p>ИИ выделяет ключевые навыки и опыт из резюме</p>
+                    </div>
+                    <div class="benefit-card">
+                        <h3>Удобный формат</h3>
+                        <p>Интуитивный интерфейс в стиле Tinder</p>
+                    </div>
+                    <div class="benefit-card">
+                        <h3>Точное соответствие</h3>
+                        <p>Оценка релевантности кандидата под вашу вакансию</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta">
+            <div class="container">
+                <h2>Готовы оптимизировать процесс отбора?</h2>
+                <p>Зарегистрируйтесь на ранний доступ к платформе</p>
+                <form class="registration-form" id="registrationForm">
+                    <div class="form-group">
+                        <input type="text" name="name" placeholder="Ваше имя" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" placeholder="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="company" placeholder="Компания" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="position" placeholder="Должность" required>
+                    </div>
+                    <button type="submit" class="btn btn--primary btn--large">Получить доступ</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="faq">
+            <div class="container">
+                <h2>Часто задаваемые вопросы</h2>
+                <div class="faq__grid">
+                    <div class="faq-item">
+                        <h3>Когда будет доступен продукт?</h3>
+                        <p>Мы запускаем бета-версию в ближайшие 2 месяца. Зарегистрируйтесь сейчас, чтобы получить ранний доступ.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h3>Как это работает?</h3>
+                        <p>Загрузите вакансию и резюме кандидатов. Наш ИИ проанализирует их и покажет в удобном формате свайпов с ключевой информацией.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h3>С какими ATS системами интегрируется?</h3>
+                        <p>Мы работаем над интеграцией с популярными ATS системами. Первыми будут поддержка hh.ru, LinkedIn и собственных баз резюме.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <div class="footer__logo">
+                    <img src="assets/logo.svg" alt="ResumeMatch AI" class="logo__img">
+                    <span class="logo__text">ResumeMatch AI</span>
+                </div>
+                <div class="footer__links">
+                    <a href="#">Политика конфиденциальности</a>
+                    <a href="#">Условия использования</a>
+                    <a href="mailto:contact@resumematch.ai">contact@resumematch.ai</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 

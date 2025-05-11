@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TrackOn - Системная адаптация сотрудников без хаоса. Создавайте треки адаптации, отслеживайте прогресс и повышайте эффективность onboarding процесса.">
+    <title>TrackOn - Системная адаптация сотрудников</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <a href="#" class="logo">TrackOn</a>
+            <a href="#form" class="cta-button">Попробовать</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1 class="animated-title">Адаптация без хаоса</h1>
+            <p>Создавайте структурированные треки адаптации, отслеживайте прогресс и помогайте новым сотрудникам быстрее влиться в команду.</p>
+            <a href="#form" class="cta-button">Начать бесплатно</a>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2>Как это работает</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>Гибкая настройка</h3>
+                    <p>Создавайте уникальные треки адаптации под вашу компанию и должности</p>
+                </div>
+                <div class="feature-card">
+                    <h3>3 типа шагов</h3>
+                    <p>Задачи, обучающие материалы и проверки знаний для комплексной адаптации</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Прозрачность</h3>
+                    <p>Отслеживайте прогресс каждого сотрудника и помогайте при необходимости</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="demo">
+        <div class="container">
+            <h2>Как это выглядит</h2>
+            <div class="demo-container">
+                <div class="demo-frame">
+                    <iframe 
+                        src="http://127.0.0.1:5173/" 
+                        title="TrackOn Demo" 
+                        frameborder="0"
+                        scrolling="no"
+                        style="overflow: hidden;"
+                    ></iframe>
+                </div>
+            </div>
+            <div class="demo-features">
+                <div class="demo-feature">
+                    <h3>Треки адаптации</h3>
+                    <p>Создавайте и настраивайте треки под разные должности и роли</p>
+                </div>
+                <div class="demo-feature">
+                    <h3>Прогресс</h3>
+                    <p>Отслеживайте выполнение задач и прохождение обучения</p>
+                </div>
+                <div class="demo-feature">
+                    <h3>Отчеты</h3>
+                    <p>Получайте аналитику по эффективности адаптации</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="form-section" id="form">
+        <div class="container">
+            <div class="form-container">
+                <h2>Попробуйте TrackOn</h2>
+                <form>
+                    <div class="form-group">
+                        <label for="name">Имя</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="company">Компания</label>
+                        <input type="text" id="company" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="team-size">Размер команды</label>
+                        <input type="number" id="team-size" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="problems">Какие проблемы в адаптации вы хотите решить?</label>
+                        <textarea id="problems" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="cta-button">Отправить</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonials">
+        <div class="container">
+            <h2>Отзывы</h2>
+            <div class="testimonial-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        <p>"TrackOn помог нам сократить время адаптации на 40% и повысить удовлетворенность новичков"</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop" alt="Анна Петрова" class="testimonial-avatar">
+                        <div class="testimonial-info">
+                            <strong>Анна Петрова</strong>
+                            <span>HR Director, TechCorp</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        <p>"Теперь мы точно знаем, на каком этапе адаптации находится каждый сотрудник"</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop" alt="Михаил Иванов" class="testimonial-avatar">
+                        <div class="testimonial-info">
+                            <strong>Михаил Иванов</strong>
+                            <span>Head of HR, FinTech</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="faq">
+        <div class="container">
+            <h2>Часто задаваемые вопросы</h2>
+            <div class="faq-item">
+                <h3>Сколько времени нужно на внедрение?</h3>
+                <p>Базовую настройку можно сделать за 1-2 дня. Полное внедрение с учетом специфики компании занимает 1-2 недели.</p>
+            </div>
+            <div class="faq-item">
+                <h3>Можно ли интегрировать с нашими HR-системами?</h3>
+                <p>Да, TrackOn интегрируется с популярными HR-системами через API.</p>
+            </div>
+            <div class="faq-item">
+                <h3>Есть ли бесплатный период?</h3>
+                <p>Да, мы предоставляем 14 дней бесплатного использования для оценки продукта.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>© 2024 TrackOn. Все права защищены.</p>
+            <p>Контакты: hello@trackon.ru</p>
+        </div>
+    </footer>
+
+    <script src="scripts.js"></script>
+</body>
+</html> 

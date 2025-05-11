@@ -23,7 +23,7 @@ services:
     ports:
       - "3002:80"
     environment:
-      - IFRAME_URL=http://localhost:3000/
+      - IFRAME_URL=https://adaptation-demo.hrtech.site/
     networks:
       - hr-network
 
@@ -33,7 +33,7 @@ services:
     ports:
       - "3003:80"
     environment:
-      - IFRAME_URL=http://localhost:3001/
+      - IFRAME_URL=https://match-demo.hrtech.site/
     networks:
       - hr-network
 

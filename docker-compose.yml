@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  adaptation:
+    build:
+      context: ./adaptation
+    ports:
+      - "3000:80"
+    networks:
+      - hr-network
+
+  candidate-swiper:
+    build:
+      context: ./candidate-swiper
+    ports:
+      - "3001:80"
+    networks:
+      - hr-network
+
+  adaptation-lending:
+    build:
+      context: ./adaptation-lending
+    ports:
+      - "3002:80"
+    environment:
+      - IFRAME_URL=http://localhost:3000/
+    networks:
+      - hr-network
+
+  candidate-swiper-lending:
+    build:
+      context: ./candidate-swiper-lending
+    ports:
+      - "3003:80"
+    environment:
+      - IFRAME_URL=http://localhost:3001/
+    networks:
+      - hr-network
+
+networks:
+  hr-network:
+    driver: bridge 

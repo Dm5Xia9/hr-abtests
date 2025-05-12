@@ -37,6 +37,14 @@ services:
     networks:
       - hr-network
 
+  adaptation-admin:
+    build:
+      context: ./adaptation-admin/adaptation-admin
+    ports:
+      - "3004:80"
+    networks:
+      - hr-network
+
 networks:
   hr-network:
     driver: bridge 

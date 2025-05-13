@@ -1,22 +1,32 @@
-FROM nginx:alpine
+# Build stage
+FROM node:18-alpine as build
 
-# Установка необходимых инструментов
-RUN apk add --no-cache nodejs npm
+# Set working directory
+WORKDIR /app
 
-# Копирование файлов проекта
-COPY . /usr/share/nginx/html/
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-# Копирование скрипта для подстановки переменных окружения
-COPY docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
+# Install dependencies
+RUN npm ci
 
-# Удаление дефолтной конфигурации nginx
-RUN rm /etc/nginx/conf.d/default.conf
+# Copy project files
+COPY . .
 
-# Копирование нашей конфигурации nginx
-COPY nginx.conf /etc/nginx/conf.d/
+# Build the app
+RUN npm run build
 
+# Production stage
+FROM nginx:stable-alpine
+
+# Copy built files from the build stage
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 80
 EXPOSE 80
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Start nginx
 CMD ["nginx", "-g", "daemon off;"] 

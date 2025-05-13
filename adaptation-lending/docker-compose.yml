@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    container_name: trackon-landing
+    networks:
+      - trackon-network
+
+  # Если в будущем понадобится API или другие сервисы, их можно добавить здесь
+  # api:
+  #   image: your-api-image
+  #   ...
+
+networks:
+  trackon-network:
+    driver: bridge 

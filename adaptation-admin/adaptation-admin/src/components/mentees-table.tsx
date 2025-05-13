@@ -14,10 +14,15 @@ import {
   Calendar, 
   CheckCircle, 
   Clock, 
-  AlertCircle 
+  AlertCircle,
+  ChevronRight,
+  Briefcase,
+  BookOpen
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 interface MenteesTableProps {
   mentees: Employee[]
@@ -56,6 +61,35 @@ export function MenteesTable({ mentees, onSelect }: MenteesTableProps) {
     }
   }
   
+  // Функция для получения статуса в виде бейджа
+  const renderStatusBadge = (status: string) => {
+    switch(status) {
+      case 'not_started':
+        return (
+          <Badge variant="outline" className="flex items-center">
+            <Clock className="w-3 h-3 mr-1" />
+            Не начата
+          </Badge>
+        )
+      case 'in_progress':
+        return (
+          <Badge className="bg-blue-500 flex items-center">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            В процессе
+          </Badge>
+        )
+      case 'completed':
+        return (
+          <Badge className="bg-green-500 flex items-center">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Завершена
+          </Badge>
+        )
+      default:
+        return null
+    }
+  }
+  
   // Функция для получения прогресса адаптации
   const getAdaptationProgress = (employee: Employee) => {
     if (!employee.assignedTrackId || !employee.stepProgress) {
@@ -86,60 +120,125 @@ export function MenteesTable({ mentees, onSelect }: MenteesTableProps) {
   }
   
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Сотрудник</TableHead>
-            <TableHead>Должность</TableHead>
-            <TableHead>Трек адаптации</TableHead>
-            <TableHead>Статус</TableHead>
-            <TableHead>Прогресс</TableHead>
-            <TableHead>Дата начала</TableHead>
-            <TableHead className="text-right">Действия</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {mentees.map((mentee) => (
-            <TableRow key={mentee.id}>
-              <TableCell className="font-medium">{mentee.fullName}</TableCell>
-              <TableCell>{mentee.position}</TableCell>
-              <TableCell>{getTrackName(mentee.assignedTrackId)}</TableCell>
-              <TableCell>
-                {renderAdaptationStatus(mentee.adaptationStatus)}
-              </TableCell>
-              <TableCell>
-                <div className="w-full bg-muted rounded-full h-2.5">
-                  <div
-                    className="bg-primary h-2.5 rounded-full"
-                    style={{ width: `${getAdaptationProgress(mentee)}%` }}
-                  ></div>
+    <>
+      {/* Мобильная версия - карточки */}
+      <div className="space-y-4 md:hidden">
+        {mentees.map((mentee) => (
+          <Card 
+            key={mentee.id} 
+            className="cursor-pointer hover:bg-accent/50 transition-colors"
+            onClick={() => onSelect(mentee.id)}
+          >
+            <CardContent className="p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-base font-medium">{mentee.fullName}</h3>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center text-sm">
+                  <Briefcase className="h-4 w-4 mr-1 text-muted-foreground" />
+                  <span className="text-muted-foreground">Должность:</span>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {getAdaptationProgress(mentee)}%
-                </span>
-              </TableCell>
-              <TableCell>
-                {mentee.startDate ? (
-                  format(new Date(mentee.startDate), 'dd MMM yyyy', { locale: ru })
-                ) : (
-                  <span className="text-muted-foreground">—</span>
+                <div className="text-sm">{mentee.position}</div>
+                
+                <div className="flex items-center text-sm">
+                  <BookOpen className="h-4 w-4 mr-1 text-muted-foreground" />
+                  <span className="text-muted-foreground">Трек:</span>
+                </div>
+                <div className="text-sm">{getTrackName(mentee.assignedTrackId)}</div>
+              </div>
+              
+              <div className="flex flex-col space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Статус:</span>
+                  {renderStatusBadge(mentee.adaptationStatus)}
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Прогресс:</span>
+                    <span className="text-sm font-medium">{getAdaptationProgress(mentee)}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full"
+                      style={{ width: `${getAdaptationProgress(mentee)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                {mentee.startDate && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Дата начала:</span>
+                    <div className="text-sm flex items-center">
+                      <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                      {format(new Date(mentee.startDate), 'dd MMM yyyy', { locale: ru })}
+                    </div>
+                  </div>
                 )}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onSelect(mentee.id)}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  Детали
-                </Button>
-              </TableCell>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Десктопная версия - таблица */}
+      <div className="hidden md:block rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Сотрудник</TableHead>
+              <TableHead>Должность</TableHead>
+              <TableHead>Трек адаптации</TableHead>
+              <TableHead>Статус</TableHead>
+              <TableHead>Прогресс</TableHead>
+              <TableHead>Дата начала</TableHead>
+              <TableHead className="text-right">Действия</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {mentees.map((mentee) => (
+              <TableRow key={mentee.id}>
+                <TableCell className="font-medium">{mentee.fullName}</TableCell>
+                <TableCell>{mentee.position}</TableCell>
+                <TableCell>{getTrackName(mentee.assignedTrackId)}</TableCell>
+                <TableCell>
+                  {renderAdaptationStatus(mentee.adaptationStatus)}
+                </TableCell>
+                <TableCell>
+                  <div className="w-full bg-muted rounded-full h-2.5">
+                    <div
+                      className="bg-primary h-2.5 rounded-full"
+                      style={{ width: `${getAdaptationProgress(mentee)}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {getAdaptationProgress(mentee)}%
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {mentee.startDate ? (
+                    format(new Date(mentee.startDate), 'dd MMM yyyy', { locale: ru })
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onSelect(mentee.id)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Детали
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   )
 } 

@@ -24,7 +24,7 @@ export function MyMenteesPage() {
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
         <div>
           <h1 className="text-2xl font-bold">Мои подопечные</h1>
           <p className="text-muted-foreground">
@@ -62,7 +62,7 @@ export function MyMenteesPage() {
       ) : (
         <MenteesTable 
           mentees={myMentees} 
-          onSelect={(employeeId) => setSelectedEmployeeId(employeeId)} 
+          onSelect={(employeeId: string) => setSelectedEmployeeId(employeeId)} 
         />
       )}
     </div>

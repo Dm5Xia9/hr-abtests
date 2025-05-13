@@ -162,12 +162,12 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
   const progress = getCurrentProgress()
   
   return (
-    <Tabs defaultValue="info" value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="mb-4">
-        <TabsTrigger value="info">Информация</TabsTrigger>
-        <TabsTrigger value="tasks">Задачи</TabsTrigger>
-        <TabsTrigger value="results">Результаты</TabsTrigger>
-        <TabsTrigger value="progress">Прогресс</TabsTrigger>
+    <Tabs defaultValue="info" value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="mb-4 w-full flex flex-wrap sm:flex-nowrap">
+        <TabsTrigger value="info" className="flex-1">Информация</TabsTrigger>
+        <TabsTrigger value="tasks" className="flex-1">Задачи</TabsTrigger>
+        <TabsTrigger value="results" className="flex-1">Результаты</TabsTrigger>
+        <TabsTrigger value="progress" className="flex-1">Прогресс</TabsTrigger>
       </TabsList>
       
       <TabsContent value="info">
@@ -177,7 +177,7 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
               <CardTitle>Личная информация</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <div className="text-sm text-muted-foreground">ФИО</div>
                   <div className="font-medium flex items-center">
@@ -316,64 +316,125 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
                 </AlertDescription>
               </Alert>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">Статус</TableHead>
-                    <TableHead>Задача</TableHead>
-                    <TableHead>Этап</TableHead>
-                    <TableHead>Дата</TableHead>
-                    <TableHead className="text-right">Действия</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Мобильная версия - карточки задач */}
+                <div className="space-y-4 md:hidden">
                   {tasks.map(task => (
-                    <TableRow key={task.id}>
-                      <TableCell>
-                        {task.completed ? (
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground" />
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{task.title}</TableCell>
-                      <TableCell>{task.milestoneTitle}</TableCell>
-                      <TableCell>
-                        {task.step.content.meeting ? (
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                            {format(new Date(task.step.content.meeting.date), 'dd MMM yyyy', { locale: ru })},
-                            {' '}{task.step.content.meeting.time}
+                    <Card key={task.id} className="overflow-hidden">
+                      <div className={`h-2 w-full ${task.completed ? 'bg-green-500' : 'bg-muted'}`}></div>
+                      <CardContent className="p-4 space-y-3 mt-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-base font-medium">{task.title}</h3>
+                            <p className="text-sm text-muted-foreground">{task.milestoneTitle}</p>
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
+                          {task.completed ? (
+                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                          ) : (
+                            <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                          )}
+                        </div>
+                        
+                        {task.step.content.meeting && (
+                          <div className="flex items-center text-sm">
+                            <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                            <span>
+                              {format(new Date(task.step.content.meeting.date), 'dd MMM yyyy', { locale: ru })},
+                              {' '}{task.step.content.meeting.time}
+                            </span>
+                          </div>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {task.completed ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => markTaskIncomplete(task.id)}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Отметить как незавершенную
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => markTaskCompleted(task.id)}
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Отметить как выполненную
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                        
+                        <div className="pt-2">
+                          {task.completed ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => markTaskIncomplete(task.id)}
+                              className="w-full"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Отметить как незавершенную
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => markTaskCompleted(task.id)}
+                              className="w-full"
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Отметить как выполненную
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+                
+                {/* Десктопная версия - таблица */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">Статус</TableHead>
+                        <TableHead>Задача</TableHead>
+                        <TableHead>Этап</TableHead>
+                        <TableHead>Дата</TableHead>
+                        <TableHead className="text-right">Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map(task => (
+                        <TableRow key={task.id}>
+                          <TableCell>
+                            {task.completed ? (
+                              <CheckCircle className="h-5 w-5 text-green-500" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{task.title}</TableCell>
+                          <TableCell>{task.milestoneTitle}</TableCell>
+                          <TableCell>
+                            {task.step.content.meeting ? (
+                              <div className="flex items-center">
+                                <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                                {format(new Date(task.step.content.meeting.date), 'dd MMM yyyy', { locale: ru })},
+                                {' '}{task.step.content.meeting.time}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {task.completed ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => markTaskIncomplete(task.id)}
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Отметить как незавершенную
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => markTaskCompleted(task.id)}
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Отметить как выполненную
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -408,24 +469,37 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
                       <p className="text-sm text-muted-foreground">{survey.milestoneTitle}</p>
                     </div>
                     
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Вопрос</TableHead>
-                          <TableHead>Ответ</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {Object.entries(survey.answers).map(([key, value]) => (
-                          <TableRow key={key}>
-                            <TableCell className="font-medium">
-                              {key.replace(/_/g, ' ')}
-                            </TableCell>
-                            <TableCell>{value}</TableCell>
+                    {/* Мобильная версия - список */}
+                    <div className="space-y-3 md:hidden">
+                      {Object.entries(survey.answers).map(([key, value]) => (
+                        <div key={key} className="pb-3 border-b border-muted last:border-0">
+                          <div className="font-medium mb-1">{key.replace(/_/g, ' ')}</div>
+                          <div className="text-sm">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Десктопная версия - таблица */}
+                    <div className="hidden md:block">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Вопрос</TableHead>
+                            <TableHead>Ответ</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {Object.entries(survey.answers).map(([key, value]) => (
+                            <TableRow key={key}>
+                              <TableCell className="font-medium">
+                                {key.replace(/_/g, ' ')}
+                              </TableCell>
+                              <TableCell>{value}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 ))}
               </div>

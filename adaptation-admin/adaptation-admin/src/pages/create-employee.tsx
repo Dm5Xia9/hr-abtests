@@ -1,34 +1,16 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '@/store/index'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { ArrowLeft } from 'lucide-react'
-import { useState } from 'react'
+import { EmployeeForm } from '@/components/employee-form'
 
 export function CreateEmployeePage() {
   const navigate = useNavigate()
-  const { setEmployees, employees } = useStore()
-  const [formData, setFormData] = useState({
-    fullName: '',
-    position: '',
-    department: '',
-  })
+  const { addEmployee } = useStore()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newEmployee = {
-      id: String(Date.now()),
-      ...formData,
-      adaptationStatus: 'not_started' as const,
-    }
-    setEmployees([...employees, newEmployee])
+  const handleSubmit = (formData: any) => {
+    addEmployee(formData)
     navigate('/employees')
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   return (
@@ -51,44 +33,10 @@ export function CreateEmployeePage() {
 
       <div className="flex-1 p-6">
         <div className="max-w-2xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">ФИО</Label>
-              <Input
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="position">Должность</Label>
-              <Input
-                id="position"
-                name="position"
-                value={formData.position}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="department">Отдел</Label>
-              <Input
-                id="department"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <Button type="submit" className="w-full">
-              Добавить
-            </Button>
-          </form>
+          <EmployeeForm 
+            onSubmit={handleSubmit}
+            onCancel={() => navigate('/employees')}
+          />
         </div>
       </div>
     </div>

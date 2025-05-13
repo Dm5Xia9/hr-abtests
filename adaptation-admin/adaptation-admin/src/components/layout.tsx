@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useTheme } from './theme-provider'
 import { Button } from './ui/button'
-import { Moon, Sun, Plus } from 'lucide-react'
+import { Moon, Sun, Plus, Users, BookOpen, FileText, Settings, UserCheck } from 'lucide-react'
+import { NotificationIcon } from './ui/notifications'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -23,36 +24,36 @@ export function Layout({ children }: LayoutProps) {
               <span className="font-bold">HR Адаптация</span>
             </Link>
             <nav className="flex items-center space-x-6 text-sm font-medium">
-              <Link
-                to="/employees"
-                className={`transition-colors hover:text-foreground/80 ${
-                  location.pathname.startsWith('/employees')
-                    ? 'text-foreground'
-                    : 'text-foreground/60'
-                }`}
-              >
-                Сотрудники
-              </Link>
-              <Link
-                to="/knowledge"
-                className={`transition-colors hover:text-foreground/80 ${
-                  location.pathname.startsWith('/knowledge')
-                    ? 'text-foreground'
-                    : 'text-foreground/60'
-                }`}
-              >
-                Статьи
-              </Link>
-              <Link
-                to="/tracks"
-                className={`transition-colors hover:text-foreground/80 ${
-                  location.pathname.startsWith('/tracks')
-                    ? 'text-foreground'
-                    : 'text-foreground/60'
-                }`}
-              >
-                Треки адаптации
-              </Link>
+              <Button variant="ghost" asChild>
+                <Link to="/employees">
+                  <Users className="mr-2 h-4 w-4" />
+                  Сотрудники
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link to="/tracks">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Треки
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link to="/knowledge">
+                  <FileText className="mr-2 h-4 w-4" />
+                  База знаний
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link to="/my-mentees">
+                  <UserCheck className="mr-2 h-4 w-4" />
+                  Мои подопечные
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link to="/management">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Управление
+                </Link>
+              </Button>
             </nav>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-2">
@@ -72,6 +73,7 @@ export function Layout({ children }: LayoutProps) {
                 </Link>
               </Button>
             )}
+            <NotificationIcon />
             <Button
               variant="ghost"
               size="icon"

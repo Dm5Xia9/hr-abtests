@@ -1,8 +1,45 @@
 export type AdaptationStatus = 'not_started' | 'in_progress' | 'completed'
 
+export type UserRole = 'admin' | 'manager' | 'observer'
+
+export type NotificationType = 'track_assigned' | 'mentor_assigned' | 'task_completed' | 'adaptation_completed'
+
+export interface Notification {
+  id: string
+  type: NotificationType
+  title: string
+  message: string
+  date: string
+  isRead: boolean
+  employeeId: string
+  data?: Record<string, any>
+}
+
+export interface User {
+  id: string
+  email: string
+  name: string
+  role: UserRole
+  createdAt: string
+  lastLogin?: string
+}
+
+export interface Position {
+  id: string
+  name: string
+  description?: string
+}
+
+export interface Department {
+  id: string
+  name: string
+  description?: string
+}
+
 export interface Track {
   id: string
   title: string
+  description?: string
   milestones: Milestone[]
 }
 
@@ -115,10 +152,15 @@ export interface Employee {
   fullName: string
   position: string
   department: string
+  email: string
+  phone?: string
+  hireDate: string
   adaptationStatus: AdaptationStatus
+  mentorId?: string
   assignedTrackId?: string
   startDate?: string
   stepProgress?: Record<string, StepProgress>
+  accessLink?: string
 }
 
 export interface StepProgress {

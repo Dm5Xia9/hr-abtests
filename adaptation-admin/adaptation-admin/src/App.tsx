@@ -11,6 +11,11 @@ import { KnowledgePage } from '@/pages/knowledge'
 import { CreateArticlePage } from '@/pages/create-article'
 import { ArticleDetailsPage } from '@/pages/article-details'
 import { EditArticlePage } from '@/pages/edit-article'
+import { ManagementPage } from '@/pages/management'
+import { InputExamplesPage } from '@/pages/input-examples'
+import { MyMenteesPage } from '@/pages/my-mentees'
+import { NotificationsPage } from '@/pages/notifications'
+import { Toaster } from '@/components/toaster'
 
 export default function App() {
   return (
@@ -29,8 +34,13 @@ export default function App() {
             <Route path="/knowledge/create" element={<CreateArticlePage />} />
             <Route path="/knowledge/:id" element={<ArticleDetailsPage />} />
             <Route path="/knowledge/:id/edit" element={<EditArticlePage />} />
+            <Route path="/management" element={<ManagementPage />} />
+            <Route path="/my-mentees" element={<MyMenteesPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/input-examples" element={<InputExamplesPage />} />
           </Routes>
         </Layout>
+        <Toaster />
       </Router>
     </ThemeProvider>
   )

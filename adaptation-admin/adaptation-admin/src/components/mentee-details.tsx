@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '@/store'
-import { Employee, Step, TaskStep } from '@/types'
+import { Employee } from '@/types'
 import { 
   Card, 
   CardContent, 
@@ -42,7 +42,7 @@ interface MenteeDetailsProps {
 }
 
 export function MenteeDetails({ employee }: MenteeDetailsProps) {
-  const { tracks, updateEmployee } = useStore()
+  const { tracks, updateStepProgress, employees, positions, departments } = useStore()
   const [activeTab, setActiveTab] = useState('info')
   
   const track = employee.assignedTrackId 
@@ -51,31 +51,35 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
   
   // Собираем все задачи (встречи) из трека
   const getAllTasks = () => {
-    if (!track) return []
+    if (!track || !track.milestones) return []
     
     const tasks: Array<{
       id: string
       title: string
       milestoneTitle: string
-      step: TaskStep
+      step: any
       completed: boolean
+      completedAt?: string
     }> = []
     
-    track.milestones.forEach(milestone => {
-      milestone.steps.forEach(step => {
-        if (step.type === 'task') {
-          const taskStep = step as TaskStep
-          if (taskStep.content.meeting) {
+    track.milestones.forEach((milestone: any) => {
+      if (milestone && milestone.steps && Array.isArray(milestone.steps)) {
+        milestone.steps.forEach((step: any) => {
+          if (step && step.type === 'task') {
+            const taskStep: any = step
+            const stepProgress = employee.stepProgress?.[step.id]
+            
             tasks.push({
               id: step.id,
               title: step.title,
               milestoneTitle: milestone.title,
               step: taskStep,
-              completed: employee.stepProgress?.[step.id]?.completed || false
+              completed: stepProgress?.completed || false,
+              completedAt: stepProgress?.completedAt
             })
           }
-        }
-      })
+        })
+      }
     })
     
     return tasks
@@ -83,7 +87,7 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
   
   // Получаем ответы сотрудника на опросы
   const getSurveyAnswers = () => {
-    if (!track || !employee.stepProgress) return []
+    if (!track || !track.milestones || !employee.stepProgress) return []
     
     const answers: Array<{
       stepId: string
@@ -92,58 +96,53 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
       answers: Record<string, string>
     }> = []
     
-    track.milestones.forEach(milestone => {
-      milestone.steps.forEach(step => {
-        if (step.type === 'survey' && 
-            employee.stepProgress?.[step.id]?.completed && 
-            employee.stepProgress[step.id].answers) {
-          answers.push({
-            stepId: step.id,
-            stepTitle: step.title,
-            milestoneTitle: milestone.title,
-            answers: employee.stepProgress[step.id].answers || {}
-          })
-        }
-      })
+    track.milestones.forEach((milestone: any) => {
+      if (milestone && milestone.steps && Array.isArray(milestone.steps)) {
+        milestone.steps.forEach((step: any) => {
+          if (step && step.type === 'survey' && 
+              employee.stepProgress?.[step.id]?.completed && 
+              employee.stepProgress[step.id].answers) {
+            answers.push({
+              stepId: step.id,
+              stepTitle: step.title,
+              milestoneTitle: milestone.title,
+              answers: employee.stepProgress[step.id].answers || {}
+            })
+          }
+        })
+      }
     })
     
     return answers
   }
   
   // Отметить задачу как выполненную
-  const markTaskCompleted = (taskId: string) => {
-    if (!employee.stepProgress) {
-      const newStepProgress = {
-        [taskId]: { completed: true }
-      }
-      updateEmployee({ ...employee, stepProgress: newStepProgress })
-    } else {
-      const newStepProgress = {
-        ...employee.stepProgress,
-        [taskId]: { completed: true }
-      }
-      updateEmployee({ ...employee, stepProgress: newStepProgress })
+  const markTaskCompleted = async (taskId: string) => {
+    try {
+      await updateStepProgress(employee.id, taskId, true);
+    } catch (error) {
+      console.error('Error marking task as completed:', error);
     }
   }
   
   // Отметить задачу как не выполненную
-  const markTaskIncomplete = (taskId: string) => {
-    if (!employee.stepProgress) return
-    
-    const newStepProgress = {
-      ...employee.stepProgress,
-      [taskId]: { completed: false }
+  const markTaskIncomplete = async (taskId: string) => {
+    try {
+      await updateStepProgress(employee.id, taskId, false);
+    } catch (error) {
+      console.error('Error marking task as incomplete:', error);
     }
-    updateEmployee({ ...employee, stepProgress: newStepProgress })
   }
   
   // Получаем текущий прогресс
   const getCurrentProgress = () => {
-    if (!track || !employee.stepProgress) return { completed: 0, total: 0 }
+    if (!track || !track.milestones || !employee.stepProgress) return { completed: 0, total: 0 }
     
     let totalSteps = 0
-    track.milestones.forEach(milestone => {
-      totalSteps += milestone.steps.length
+    track.milestones.forEach((milestone: any) => {
+      if (milestone && milestone.steps && Array.isArray(milestone.steps)) {
+        totalSteps += milestone.steps.length
+      }
     })
     
     const completedSteps = Object.values(employee.stepProgress).filter(
@@ -157,9 +156,91 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
     }
   }
   
+  // Получаем информацию о прохождении шагов
+  const getStepsProgress = () => {
+    if (!track || !track.milestones) return []
+    
+    const stepsProgress: Array<{
+      id: string
+      title: string
+      type: string
+      milestoneId: string
+      milestoneTitle: string
+      completed: boolean
+      completedAt?: string
+      timeToComplete?: string
+    }> = []
+    
+    track.milestones.forEach((milestone: any) => {
+      if (milestone && milestone.steps && Array.isArray(milestone.steps)) {
+        milestone.steps.forEach((step: any) => {
+          if (step) {
+            const stepProgress = employee.stepProgress?.[step.id]
+            const timeToComplete = getTimeToComplete(step.id)
+            
+            stepsProgress.push({
+              id: step.id,
+              title: step.title,
+              type: step.type,
+              milestoneId: milestone.id,
+              milestoneTitle: milestone.title,
+              completed: stepProgress?.completed || false,
+              completedAt: stepProgress?.completedAt,
+              timeToComplete
+            })
+          }
+        })
+      }
+    })
+    
+    return stepsProgress
+  }
+  
+  // Рассчитываем время прохождения шага
+  const getTimeToComplete = (stepId: string) => {
+    const stepProgress = employee.stepProgress?.[stepId]
+    if (!stepProgress || !stepProgress.completed || !stepProgress.startedAt || !stepProgress.completedAt) {
+      return undefined
+    }
+    
+    try {
+      const startDate = new Date(stepProgress.startedAt)
+      const completionDate = new Date(stepProgress.completedAt)
+      
+      const diffTime = Math.abs(completionDate.getTime() - startDate.getTime())
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+      
+      if (diffDays === 0) {
+        const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+        if (diffHours === 0) {
+          const diffMinutes = Math.floor(diffTime / (1000 * 60))
+          return `${diffMinutes} мин.`
+        }
+        return `${diffHours} ч.`
+      }
+      return `${diffDays} д.`
+    } catch (error) {
+      console.error('Error calculating time to complete:', error)
+      return undefined
+    }
+  }
+  
   const tasks = getAllTasks()
   const surveyAnswers = getSurveyAnswers()
   const progress = getCurrentProgress()
+  const stepsProgress = getStepsProgress()
+  
+  // Helper function to get position name by ID
+  const getPositionName = (positionId: string) => {
+    const position = positions.find(p => p.id === positionId)
+    return position?.name || 'Unknown'
+  }
+
+  // Helper function to get department name by ID
+  const getDepartmentName = (departmentId: string) => {
+    const department = departments.find(d => d.id === departmentId)
+    return department?.name || 'Unknown'
+  }
   
   return (
     <Tabs defaultValue="info" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -190,7 +271,7 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
                   <div className="text-sm text-muted-foreground">Должность</div>
                   <div className="font-medium flex items-center">
                     <CheckCircle2 className="w-4 h-4 mr-2 text-muted-foreground" />
-                    {employee.position}
+                    {getPositionName(employee.positionId)}
                   </div>
                 </div>
                 
@@ -198,7 +279,7 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
                   <div className="text-sm text-muted-foreground">Подразделение</div>
                   <div className="font-medium flex items-center">
                     <Building className="w-4 h-4 mr-2 text-muted-foreground" />
-                    {employee.department}
+                    {getDepartmentName(employee.departmentId)}
                   </div>
                 </div>
                 
@@ -298,8 +379,8 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
       <TabsContent value="tasks">
         <Card>
           <CardHeader>
-            <CardTitle>Задачи и встречи</CardTitle>
-            <CardDescription>Все запланированные задачи и встречи в треке адаптации</CardDescription>
+            <CardTitle>Задачи</CardTitle>
+            <CardDescription>Все задачи в треке адаптации</CardDescription>
           </CardHeader>
           <CardContent>
             {!track ? (
@@ -312,7 +393,7 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
             ) : tasks.length === 0 ? (
               <Alert className="mb-4">
                 <AlertDescription>
-                  В треке адаптации нет задач или встреч.
+                  В треке адаптации нет задач.
                 </AlertDescription>
               </Alert>
             ) : (
@@ -335,13 +416,25 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
                           )}
                         </div>
                         
-                        {task.step.content.meeting && (
+                        {task.step.content && task.step.content.meeting && (
                           <div className="flex items-center text-sm">
                             <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
                             <span>
-                              {format(new Date(task.step.content.meeting.date), 'dd MMM yyyy', { locale: ru })},
-                              {' '}{task.step.content.meeting.time}
+                              {task.step.content.meeting.date ? (
+                                <>
+                                  {format(new Date(task.step.content.meeting.date), 'dd MMM yyyy', { locale: ru })},
+                                  {' '}{task.step.content.meeting.time}
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">Дата не указана</span>
+                              )}
                             </span>
+                          </div>
+                        )}
+
+                        {task.completed && task.completedAt && (
+                          <div className="text-sm text-muted-foreground">
+                            Завершено: {format(new Date(task.completedAt), 'dd MMM yyyy', { locale: ru })}
                           </div>
                         )}
                         
@@ -381,7 +474,8 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
                         <TableHead className="w-[50px]">Статус</TableHead>
                         <TableHead>Задача</TableHead>
                         <TableHead>Этап</TableHead>
-                        <TableHead>Дата</TableHead>
+                        <TableHead>Дата встречи</TableHead>
+                        <TableHead>Дата завершения</TableHead>
                         <TableHead className="text-right">Действия</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -398,12 +492,25 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
                           <TableCell className="font-medium">{task.title}</TableCell>
                           <TableCell>{task.milestoneTitle}</TableCell>
                           <TableCell>
-                            {task.step.content.meeting ? (
+                            {task.step.content && task.step.content.meeting ? (
                               <div className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                                {format(new Date(task.step.content.meeting.date), 'dd MMM yyyy', { locale: ru })},
-                                {' '}{task.step.content.meeting.time}
+                                {task.step.content.meeting.date ? (
+                                  <>
+                                    {format(new Date(task.step.content.meeting.date), 'dd MMM yyyy', { locale: ru })},
+                                    {' '}{task.step.content.meeting.time}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">Дата не указана</span>
+                                )}
                               </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {task.completed && task.completedAt ? (
+                              format(new Date(task.completedAt), 'dd MMM yyyy', { locale: ru })
                             ) : (
                               <span className="text-muted-foreground">—</span>
                             )}
@@ -524,31 +631,53 @@ export function MenteeDetails({ employee }: MenteeDetailsProps) {
               </Alert>
             ) : (
               <div className="space-y-6">
-                {track.milestones.map(milestone => (
+                {track && track.milestones && Array.isArray(track.milestones) ? track.milestones.map((milestone: any) => (
                   <div key={milestone.id} className="border rounded-lg p-4">
                     <h3 className="text-lg font-medium mb-4">{milestone.title}</h3>
                     
                     <div className="space-y-2">
-                      {milestone.steps.map(step => {
-                        const isCompleted = employee.stepProgress?.[step.id]?.completed || false
+                      {milestone.steps && Array.isArray(milestone.steps) && milestone.steps.map((step: any) => {
+                        const stepData = stepsProgress.find(s => s.id === step.id)
+                        const isCompleted = stepData?.completed || false
                         
                         return (
-                          <div key={step.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted">
-                            {isCompleted ? (
-                              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                            ) : (
-                              <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                            )}
-                            <div>
-                              <div className="font-medium">{step.title}</div>
-                              <div className="text-sm text-muted-foreground">{step.type}</div>
+                          <div key={step.id} className="flex flex-col gap-1 p-3 rounded-md hover:bg-muted border-l-4 border-transparent hover:border-primary">
+                            <div className="flex items-center gap-2">
+                              {isCompleted ? (
+                                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                              )}
+                              <div className="flex-1">
+                                <div className="font-medium">{step.title}</div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <span className="capitalize">{step.type}</span>
+                                  {isCompleted && stepData?.completedAt && (
+                                    <>
+                                      <span className="mx-1">•</span>
+                                      <span>Завершено: {format(new Date(stepData.completedAt), 'dd MMM yyyy', { locale: ru })}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              {stepData?.timeToComplete && (
+                                <Badge variant="outline" className="ml-auto">
+                                  {stepData.timeToComplete}
+                                </Badge>
+                              )}
                             </div>
+                            
+                            {isCompleted && !stepData?.timeToComplete && (
+                              <div className="ml-7 text-xs text-muted-foreground">
+                                Нет данных о времени прохождения
+                              </div>
+                            )}
                           </div>
                         )
                       })}
                     </div>
                   </div>
-                ))}
+                )) : <Alert className="mb-4"><AlertDescription>Невозможно отобразить прогресс. Структура трека повреждена.</AlertDescription></Alert>}
               </div>
             )}
           </CardContent>

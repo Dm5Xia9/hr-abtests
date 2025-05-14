@@ -11,7 +11,7 @@ import { Link, User, FileText } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
 
 export function EmployeesTable() {
-  const { employees, tracks, users, generateAccessLink } = useStore()
+  const { employees, tracks, users, positions, departments, generateAccessLink } = useStore()
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
   const [dialogAction, setDialogAction] = useState<'assign' | 'remove' | 'update' | 'mentor' | null>(null)
@@ -31,15 +31,32 @@ export function EmployeesTable() {
     setDialogAction(null)
   }
 
-  const handleGetAccessLink = (employeeId: string) => {
-    const link = generateAccessLink(employeeId)
-    navigator.clipboard.writeText(link)
-    toast.success('Ссылка скопирована в буфер обмена')
+  const handleGetAccessLink = async (employeeId: string) => {
+    try {
+      const link = await generateAccessLink(employeeId)
+      await navigator.clipboard.writeText(link)
+      toast.success('Ссылка скопирована в буфер обмена')
+    } catch (error) {
+      console.error('Failed to copy access link:', error)
+      toast.error('Не удалось скопировать ссылку')
+    }
   }
   
   const selectedEmployee = selectedEmployeeId 
     ? employees.find(e => e.id === selectedEmployeeId) 
     : null
+
+  // Helper function to get position name by ID
+  const getPositionName = (positionId: string) => {
+    const position = positions.find(p => p.id === positionId)
+    return position?.name || 'Unknown'
+  }
+
+  // Helper function to get department name by ID
+  const getDepartmentName = (departmentId: string) => {
+    const department = departments.find(d => d.id === departmentId)
+    return department?.name || 'Unknown'
+  }
 
   return (
     <div className="space-y-4">
@@ -82,8 +99,8 @@ export function EmployeesTable() {
               return (
                 <tr key={employee.id} className="border-b">
                   <td className="px-4 py-3 text-sm">{employee.fullName}</td>
-                  <td className="px-4 py-3 text-sm">{employee.position}</td>
-                  <td className="px-4 py-3 text-sm">{employee.department}</td>
+                  <td className="px-4 py-3 text-sm">{getPositionName(employee.positionId)}</td>
+                  <td className="px-4 py-3 text-sm">{getDepartmentName(employee.departmentId)}</td>
                   <td className="px-4 py-3 text-sm">
                     <AdaptationStatus status={employee.adaptationStatus} />
                   </td>
@@ -106,7 +123,10 @@ export function EmployeesTable() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleAction(employee.id, 'mentor')}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleAction(employee.id, 'mentor')
+                        }}
                         title="Назначить наставника"
                       >
                         <User className="h-4 w-4" />

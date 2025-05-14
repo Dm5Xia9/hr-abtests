@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "ons+h8isSoy1MZQ2+gPNzprGwt4bIp/oGptaXYJUCNY=",
+  "Source": "AdaptationServer",
+  "BasePath": "_content/AdaptationServer",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

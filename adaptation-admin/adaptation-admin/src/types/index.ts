@@ -4,6 +4,9 @@ export type UserRole = 'admin' | 'manager' | 'observer'
 
 export type NotificationType = 'track_assigned' | 'mentor_assigned' | 'task_completed' | 'adaptation_completed'
 
+// Типы тарифных планов
+export type PlanType = 'free' | 'pro' | 'business'
+
 export interface Notification {
   id: string
   type: NotificationType
@@ -22,6 +25,21 @@ export interface User {
   role: UserRole
   createdAt: string
   lastLogin?: string
+  currentCompanyProfileId?: string
+}
+
+export interface CompanyProfile {
+  id: string
+  name: string
+  description?: string
+  logoUrl?: string
+  industry?: string
+  size?: 'small' | 'medium' | 'large' | 'enterprise'
+  plan?: PlanType
+  planExpiresAt?: string
+  createdAt: string
+  updatedAt: string
+  ownerId: string
 }
 
 export interface Position {
@@ -36,19 +54,6 @@ export interface Department {
   description?: string
 }
 
-export interface Track {
-  id: string
-  title: string
-  description?: string
-  milestones: Milestone[]
-}
-
-export interface Milestone {
-  id: string
-  title: string
-  description: string
-  steps: Step[]
-}
 
 export interface Article {
   id: string
@@ -61,97 +66,12 @@ export interface Article {
   author: string
 }
 
-export type Step = PresentationStep | TaskStep | SurveyStep
-
-export interface BaseStep {
-  id: string
-  type: 'presentation' | 'task' | 'survey'
-  title: string
-  description: string
-}
-
-export interface PresentationStep extends BaseStep {
-  type: 'presentation'
-  content: {
-    slides: (ContentSlide | QuizSlide)[]
-  }
-}
-
-export interface TaskStep extends BaseStep {
-  type: 'task'
-  content: {
-    description: string
-    meeting?: {
-      title?: string
-      date: string
-      time: string
-      duration?: string
-      location: string
-      participants: string[]
-    }
-  }
-}
-
-export interface SurveyStep extends BaseStep {
-  type: 'survey'
-  content: {
-    title: string
-    description: string
-    form: {
-      components: FormComponent[]
-    }
-  }
-}
-
-export interface ContentSlide {
-  title: string
-  content: string
-}
-
-export interface QuizSlide {
-  type: 'quiz'
-  title: string
-  content: {
-    question: string
-    options: string[]
-    correctAnswer: number
-  }
-}
-
-export type FormComponent = TextFieldComponent | SelectComponent | RatingComponent
-
-export interface BaseFormComponent {
-  type: string
-  label: string
-  key: string
-  required: boolean
-}
-
-export interface TextFieldComponent extends BaseFormComponent {
-  type: 'textfield'
-  multiline?: boolean
-  placeholder?: string
-}
-
-export interface SelectComponent extends BaseFormComponent {
-  type: 'select'
-  options: Array<{
-    label: string
-    value: string
-  }>
-}
-
-export interface RatingComponent extends BaseFormComponent {
-  type: 'rating'
-  min?: number
-  max?: number
-}
 
 export interface Employee {
   id: string
   fullName: string
-  position: string
-  department: string
+  positionId: string
+  departmentId: string
   email: string
   phone?: string
   hireDate: string
@@ -166,4 +86,20 @@ export interface Employee {
 export interface StepProgress {
   completed: boolean
   answers?: Record<string, string>
+  completedAt?: string
+  startedAt?: string
+}
+
+// Интерфейс для тарифных планов
+export interface SubscriptionPlan {
+  id: PlanType
+  name: string
+  price: number
+  annualDiscount: number
+  maxEmployees: number
+  maxTracks: number
+  maxMentors: number
+  features: string[]
+  isPopular?: boolean
+  color: string
 } 

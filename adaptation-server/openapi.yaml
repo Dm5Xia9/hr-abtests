@@ -1,0 +1,1371 @@
+openapi: 3.0.3
+info:
+  title: Adaptation Admin API
+  description: API for managing employee adaptation process
+  version: 1.0.0
+servers:
+  - url: /api
+    description: Default server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+
+    Employee:
+      type: object
+      required:
+        - id
+        - fullName
+        - position
+        - department
+        - email
+        - hireDate
+        - adaptationStatus
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        position:
+          type: string
+        department:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        hireDate:
+          type: string
+          format: date
+        adaptationStatus:
+          type: string
+          enum: [not_started, in_progress, completed]
+        mentorId:
+          type: string
+          format: uuid
+        assignedTrackId:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        stepProgress:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StepProgress'
+        accessLink:
+          type: string
+
+    StepProgress:
+      type: object
+      properties:
+        completed:
+          type: boolean
+        answers:
+          type: object
+          additionalProperties:
+            type: string
+
+    Track:
+      type: object
+      required:
+        - id
+        - title
+        - milestones
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        milestones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Milestone'
+
+    Milestone:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - steps
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/PresentationStep'
+              - $ref: '#/components/schemas/TaskStep'
+              - $ref: '#/components/schemas/SurveyStep'
+
+    BaseStep:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - description
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+
+    PresentationStep:
+      allOf:
+        - $ref: '#/components/schemas/BaseStep'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [presentation]
+            content:
+              type: object
+              properties:
+                slides:
+                  type: array
+                  items:
+                    oneOf:
+                      - $ref: '#/components/schemas/ContentSlide'
+                      - $ref: '#/components/schemas/QuizSlide'
+
+    TaskStep:
+      allOf:
+        - $ref: '#/components/schemas/BaseStep'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [task]
+            content:
+              type: object
+              properties:
+                description:
+                  type: string
+                meeting:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    date:
+                      type: string
+                      format: date
+                    time:
+                      type: string
+                    duration:
+                      type: string
+                    location:
+                      type: string
+                    participants:
+                      type: array
+                      items:
+                        type: string
+
+    SurveyStep:
+      allOf:
+        - $ref: '#/components/schemas/BaseStep'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [survey]
+            content:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                form:
+                  type: object
+                  properties:
+                    components:
+                      type: array
+                      items:
+                        oneOf:
+                          - $ref: '#/components/schemas/TextFieldComponent'
+                          - $ref: '#/components/schemas/SelectComponent'
+                          - $ref: '#/components/schemas/RatingComponent'
+
+    ContentSlide:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+
+    QuizSlide:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [quiz]
+        title:
+          type: string
+        content:
+          type: object
+          properties:
+            question:
+              type: string
+            options:
+              type: array
+              items:
+                type: string
+            correctAnswer:
+              type: integer
+
+    BaseFormComponent:
+      type: object
+      required:
+        - type
+        - label
+        - key
+        - required
+      properties:
+        type:
+          type: string
+        label:
+          type: string
+        key:
+          type: string
+        required:
+          type: boolean
+
+    TextFieldComponent:
+      allOf:
+        - $ref: '#/components/schemas/BaseFormComponent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [textfield]
+            multiline:
+              type: boolean
+            placeholder:
+              type: string
+
+    SelectComponent:
+      allOf:
+        - $ref: '#/components/schemas/BaseFormComponent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [select]
+            options:
+              type: array
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  value:
+                    type: string
+
+    RatingComponent:
+      allOf:
+        - $ref: '#/components/schemas/BaseFormComponent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [rating]
+            min:
+              type: integer
+            max:
+              type: integer
+
+    Article:
+      type: object
+      required:
+        - id
+        - title
+        - content
+        - category
+        - tags
+        - createdAt
+        - updatedAt
+        - author
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        author:
+          type: string
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - role
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, observer]
+        createdAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+
+    Position:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+
+    Department:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+
+    Notification:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - message
+        - date
+        - isRead
+        - employeeId
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [track_assigned, mentor_assigned, task_completed, adaptation_completed]
+        title:
+          type: string
+        message:
+          type: string
+        date:
+          type: string
+          format: date-time
+        isRead:
+          type: boolean
+        employeeId:
+          type: string
+          format: uuid
+        data:
+          type: object
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      required:
+        - token
+        - user
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    AccessLinkResponse:
+      type: object
+      required:
+        - accessLink
+      properties:
+        accessLink:
+          type: string
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /employees:
+    get:
+      summary: Get all employees
+      responses:
+        '200':
+          description: List of employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+    post:
+      summary: Create a new employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fullName
+                - position
+                - department
+                - email
+                - hireDate
+              properties:
+                fullName:
+                  type: string
+                position:
+                  type: string
+                department:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                hireDate:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Employee created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /employees/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get employee by ID
+      responses:
+        '200':
+          description: Employee details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Employee'
+      responses:
+        '200':
+          description: Employee updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete employee
+      responses:
+        '204':
+          description: Employee deleted
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /employees/{id}/mentor:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Assign mentor to employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mentorId
+              properties:
+                mentorId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Mentor assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee or mentor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Remove mentor from employee
+      responses:
+        '200':
+          description: Mentor removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /employees/{id}/track:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Assign track to employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - trackId
+                - startDate
+              properties:
+                trackId:
+                  type: string
+                  format: uuid
+                startDate:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Track assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee or track not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Remove track from employee
+      responses:
+        '200':
+          description: Track removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /employees/{id}/access-link:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Generate access link for employee
+      responses:
+        '200':
+          description: Access link generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessLinkResponse'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tracks:
+    get:
+      summary: Get all tracks
+      responses:
+        '200':
+          description: List of tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Track'
+    post:
+      summary: Create a new track
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - milestones
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                milestones:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Milestone'
+      responses:
+        '201':
+          description: Track created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tracks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get track by ID
+      responses:
+        '200':
+          description: Track details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '404':
+          description: Track not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update track
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Track'
+      responses:
+        '200':
+          description: Track updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Track not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete track
+      responses:
+        '204':
+          description: Track deleted
+        '404':
+          description: Track not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /articles:
+    get:
+      summary: Get all articles
+      responses:
+        '200':
+          description: List of articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Article'
+    post:
+      summary: Create a new article
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - category
+                - tags
+                - author
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                category:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                author:
+                  type: string
+      responses:
+        '201':
+          description: Article created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /articles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get article by ID
+      responses:
+        '200':
+          description: Article details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update article
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Article'
+      responses:
+        '200':
+          description: Article updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete article
+      responses:
+        '204':
+          description: Article deleted
+        '404':
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      summary: Get all users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - name
+                - role
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, manager, observer]
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get user by ID
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete user
+      responses:
+        '204':
+          description: User deleted
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{id}/reset-password:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Reset user password
+      responses:
+        '204':
+          description: Password reset email sent
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{id}/role:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Change user role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [admin, manager, observer]
+      responses:
+        '200':
+          description: User role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /positions:
+    get:
+      summary: Get all positions
+      responses:
+        '200':
+          description: List of positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Position'
+    post:
+      summary: Create a new position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Position created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /positions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Update position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Position'
+      responses:
+        '200':
+          description: Position updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Position not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete position
+      responses:
+        '204':
+          description: Position deleted
+        '404':
+          description: Position not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /departments:
+    get:
+      summary: Get all departments
+      responses:
+        '200':
+          description: List of departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+    post:
+      summary: Create a new department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Department created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /departments/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Update department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Department'
+      responses:
+        '200':
+          description: Department updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete department
+      responses:
+        '204':
+          description: Department deleted
+        '404':
+          description: Department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications:
+    get:
+      summary: Get all notifications
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+
+  /notifications/{id}/read:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Mark notification as read
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/read-all:
+    put:
+      summary: Mark all notifications as read
+      responses:
+        '204':
+          description: All notifications marked as read
+
+  /notifications/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      summary: Delete notification
+      responses:
+        '204':
+          description: Notification deleted
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

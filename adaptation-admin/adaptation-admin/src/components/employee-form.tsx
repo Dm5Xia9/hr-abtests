@@ -34,12 +34,16 @@ export function EmployeeForm({ onSubmit, onCancel }: EmployeeFormProps) {
 
   const handleCreatePosition = (name: string) => {
     const newPosition = addPosition({ name, description: '' })
-    handleSelectChange('position', newPosition.name)
+    .then(p => {
+      handleSelectChange('position', p.name)
+    })
   }
 
   const handleCreateDepartment = (name: string) => {
-    const newDepartment = addDepartment({ name, description: '' })
-    handleSelectChange('department', newDepartment.name)
+    addDepartment({ name, description: '' })
+      .then(p => {
+        handleSelectChange('department', p.name)
+      })
   }
 
   const handleSubmit = (e: React.FormEvent) => {

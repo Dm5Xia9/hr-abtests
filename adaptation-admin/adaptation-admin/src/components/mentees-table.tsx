@@ -17,7 +17,8 @@ import {
   AlertCircle,
   ChevronRight,
   Briefcase,
-  BookOpen
+  BookOpen,
+  Building
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
@@ -30,7 +31,7 @@ interface MenteesTableProps {
 }
 
 export function MenteesTable({ mentees, onSelect }: MenteesTableProps) {
-  const { tracks } = useStore()
+  const { tracks, positions, departments } = useStore()
   
   // Функция для получения статуса адаптации в виде компонента
   const renderAdaptationStatus = (status: string) => {
@@ -101,8 +102,10 @@ export function MenteesTable({ mentees, onSelect }: MenteesTableProps) {
     
     // Считаем общее количество шагов в треке
     let totalSteps = 0
-    track.milestones.forEach(milestone => {
-      totalSteps += milestone.steps.length
+    track.milestones.forEach((milestone: any) => {
+      if (milestone.steps && Array.isArray(milestone.steps)) {
+        totalSteps += milestone.steps.length
+      }
     })
     
     // Считаем количество завершенных шагов
@@ -117,6 +120,20 @@ export function MenteesTable({ mentees, onSelect }: MenteesTableProps) {
     if (!trackId) return 'Не назначен'
     const track = tracks.find(t => t.id === trackId)
     return track ? track.title : 'Неизвестный трек'
+  }
+  
+  // Helper function to get position name by ID
+  const getPositionName = (positionId: string | undefined) => {
+    if (!positionId) return 'Неизвестная должность'
+    const position = positions.find(p => p.id === positionId)
+    return position ? position.name : 'Неизвестная должность'
+  }
+  
+  // Helper function to get department name by ID
+  const getDepartmentName = (departmentId: string | undefined) => {
+    if (!departmentId) return 'Неизвестный отдел'
+    const department = departments.find(d => d.id === departmentId)
+    return department ? department.name : 'Неизвестный отдел'
   }
   
   return (
@@ -140,7 +157,13 @@ export function MenteesTable({ mentees, onSelect }: MenteesTableProps) {
                   <Briefcase className="h-4 w-4 mr-1 text-muted-foreground" />
                   <span className="text-muted-foreground">Должность:</span>
                 </div>
-                <div className="text-sm">{mentee.position}</div>
+                <div className="text-sm">{getPositionName(mentee.positionId)}</div>
+                
+                <div className="flex items-center text-sm">
+                  <Building className="h-4 w-4 mr-1 text-muted-foreground" />
+                  <span className="text-muted-foreground">Отдел:</span>
+                </div>
+                <div className="text-sm">{getDepartmentName(mentee.departmentId)}</div>
                 
                 <div className="flex items-center text-sm">
                   <BookOpen className="h-4 w-4 mr-1 text-muted-foreground" />
@@ -190,6 +213,7 @@ export function MenteesTable({ mentees, onSelect }: MenteesTableProps) {
             <TableRow>
               <TableHead>Сотрудник</TableHead>
               <TableHead>Должность</TableHead>
+              <TableHead>Отдел</TableHead>
               <TableHead>Трек адаптации</TableHead>
               <TableHead>Статус</TableHead>
               <TableHead>Прогресс</TableHead>
@@ -201,7 +225,8 @@ export function MenteesTable({ mentees, onSelect }: MenteesTableProps) {
             {mentees.map((mentee) => (
               <TableRow key={mentee.id}>
                 <TableCell className="font-medium">{mentee.fullName}</TableCell>
-                <TableCell>{mentee.position}</TableCell>
+                <TableCell>{getPositionName(mentee.positionId)}</TableCell>
+                <TableCell>{getDepartmentName(mentee.departmentId)}</TableCell>
                 <TableCell>{getTrackName(mentee.assignedTrackId)}</TableCell>
                 <TableCell>
                   {renderAdaptationStatus(mentee.adaptationStatus)}

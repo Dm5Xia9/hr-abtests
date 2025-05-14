@@ -10,9 +10,10 @@ import {
   Department,
   AdaptationStatus,
   Notification,
-  NotificationType
+  NotificationType,
+  CompanyProfile
 } from '@/types'
-import track from './track.json'
+import apiClient from '@/lib/api'
 
 interface AppState {
   employees: Employee[]
@@ -22,383 +23,486 @@ interface AppState {
   positions: Position[]
   departments: Department[]
   notifications: Notification[]
+  currentUser: User | null
+  companyProfiles: CompanyProfile[]
+  currentCompanyProfile: CompanyProfile | null
   
   // Employee methods
   setEmployees: (employees: Employee[]) => void
-  addEmployee: (employee: Omit<Employee, 'id' | 'adaptationStatus' | 'accessLink'>) => void
-  updateEmployee: (employee: Employee) => void
-  deleteEmployee: (id: string) => void
-  assignMentor: (employeeId: string, mentorId: string) => void
-  removeMentor: (employeeId: string) => void
-  generateAccessLink: (employeeId: string) => string
+  fetchEmployees: () => Promise<void>
+  addEmployee: (employee: Omit<Employee, 'id' | 'adaptationStatus' | 'accessLink'>) => Promise<void>
+  updateEmployee: (employee: Employee) => Promise<void>
+  deleteEmployee: (id: string) => Promise<void>
+  assignMentor: (employeeId: string, mentorId: string) => Promise<void>
+  removeMentor: (employeeId: string) => Promise<void>
+  generateAccessLink: (employeeId: string) => Promise<string>
+  updateStepProgress: (employeeId: string, stepId: string, completed: boolean) => Promise<void>
   
   // Track methods
   setTracks: (tracks: Track[]) => void
-  assignTrack: (employeeId: string, trackId: string, startDate: string) => void
-  removeTrack: (employeeId: string) => void
-  updateTrack: (employeeId: string, trackId: string, startDate: string) => void
-  updateTrackContent: (track: Track) => void
+  fetchTracks: () => Promise<void>
+  createTrack: (track: Omit<Track, 'id'>) => Promise<void>
+  assignTrack: (employeeId: string, trackId: string, startDate: string) => Promise<void>
+  removeTrack: (employeeId: string) => Promise<void>
+  updateTrack: (employeeId: string, trackId: string, startDate: string) => Promise<void>
+  updateTrackContent: (track: Track) => Promise<void>
 
   // Articles methods  
   setArticles: (articles: Article[]) => void
-  createArticle: (article: Omit<Article, 'id' | 'createdAt' | 'updatedAt'>) => void
-  updateArticle: (article: Article) => void
-  deleteArticle: (id: string) => void
+  fetchArticles: () => Promise<void>
+  createArticle: (article: Omit<Article, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  updateArticle: (article: Article) => Promise<void>
+  deleteArticle: (id: string) => Promise<void>
   
   // User methods
   setUsers: (users: User[]) => void
-  addUser: (user: Omit<User, 'id' | 'createdAt'>) => void
-  updateUser: (user: User) => void
-  deleteUser: (id: string) => void
-  resetUserPassword: (id: string) => void
-  changeUserRole: (id: string, role: UserRole) => void
+  fetchUsers: () => Promise<void>
+  addUser: (user: Omit<User, 'id' | 'createdAt'>) => Promise<void>
+  updateUser: (user: User) => Promise<void>
+  deleteUser: (id: string) => Promise<void>
+  resetUserPassword: (id: string) => Promise<void>
+  changeUserRole: (id: string, role: UserRole) => Promise<void>
+  setCurrentUser: (user: User | null) => void
+  fetchCurrentUser: () => Promise<void>
   
   // Dictionary methods
   setPositions: (positions: Position[]) => void
-  addPosition: (position: Omit<Position, 'id'>) => Position
-  updatePosition: (position: Position) => void
-  deletePosition: (id: string) => void
+  fetchPositions: () => Promise<void>
+  addPosition: (position: Omit<Position, 'id'>) => Promise<Position>
+  updatePosition: (position: Position) => Promise<void>
+  deletePosition: (id: string) => Promise<void>
   
   setDepartments: (departments: Department[]) => void
-  addDepartment: (department: Omit<Department, 'id'>) => Department
-  updateDepartment: (department: Department) => void
-  deleteDepartment: (id: string) => void
+  fetchDepartments: () => Promise<void>
+  addDepartment: (department: Omit<Department, 'id'>) => Promise<Department>
+  updateDepartment: (department: Department) => Promise<void>
+  deleteDepartment: (id: string) => Promise<void>
 
   // Notification methods
+  fetchNotifications: () => Promise<void>
   addNotification: (notification: Omit<Notification, 'id' | 'date' | 'isRead'>) => void
-  markNotificationAsRead: (id: string) => void
-  markAllNotificationsAsRead: () => void
-  deleteNotification: (id: string) => void
+  markNotificationAsRead: (id: string) => Promise<void>
+  markAllNotificationsAsRead: () => Promise<void>
+  deleteNotification: (id: string) => Promise<void>
   getUnreadNotificationsCount: () => number
+
+  // Company Profile methods
+  setCompanyProfiles: (profiles: CompanyProfile[]) => void
+  fetchCompanyProfiles: () => Promise<void>
+  addCompanyProfile: (profile: Omit<CompanyProfile, 'id'>) => Promise<void>
+  updateCompanyProfile: (profile: CompanyProfile) => Promise<void>
+  deleteCompanyProfile: (id: string) => Promise<void>
+  setCurrentCompanyProfile: (profile: CompanyProfile | null) => void
+  switchCompanyProfile: (id: string) => Promise<void>
+  getCurrentCompanyProfile: () => Promise<void>
 }
 
-// Mock data
-const mockEmployees: Employee[] = [
-  {
-    id: '1',
-    fullName: 'John Doe',
-    position: 'Software Engineer',
-    department: 'Engineering',
-    email: 'john.doe@example.com',
-    hireDate: '2024-01-15',
-    adaptationStatus: 'not_started',
-  },
-  {
-    id: '2',
-    fullName: 'Jane Smith',
-    position: 'Product Manager',
-    department: 'Product',
-    email: 'jane.smith@example.com',
-    hireDate: '2024-02-01',
-    adaptationStatus: 'in_progress',
-    assignedTrackId: 'dotnet-developer-track',
-    startDate: '2024-02-01',
-    stepProgress: {
-      'welcome-survey': {
-        completed: true,
-        answers: {
-          'experience': '5 years of experience',
-          'expectations': 'Looking forward to learning new technologies',
-          'learning_preference': 'mentor'
-        }
-      }
-    }
-  },
-]
-
 // Приведение типа для track.json
-const typedTrack: Track = track as Track
-const mockTracks: Track[] = [typedTrack]
-
-const mockArticles: Article[] = [
-  {
-    id: '1',
-    title: 'Как начать работу в компании',
-    content: '# Добро пожаловать!\n\nЭто руководство поможет вам начать работу в нашей компании...',
-    category: 'Ориентация',
-    tags: ['начало работы', 'onboarding'],
-    createdAt: '2024-02-01T10:00:00Z',
-    updatedAt: '2024-02-01T10:00:00Z',
-    author: 'HR Department',
-  },
-  {
-    id: '2',
-    title: 'Корпоративная культура',
-    content: '# Корпоративная культура\n\nНаша компания ценит...',
-    category: 'Культура',
-    tags: ['культура', 'ценности'],
-    createdAt: '2024-02-01T11:00:00Z',
-    updatedAt: '2024-02-01T11:00:00Z',
-    author: 'HR Department',
-  },
-]
-
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'Администратор',
-    email: 'admin@company.com',
-    role: 'admin',
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Иван Петров',
-    email: 'ivan@company.com',
-    role: 'manager',
-    createdAt: '2024-01-15T10:30:00Z',
-    lastLogin: '2024-02-20T14:25:00Z',
-  },
-  {
-    id: '3',
-    name: 'Анна Сидорова',
-    email: 'anna@company.com',
-    role: 'observer',
-    createdAt: '2024-02-05T09:15:00Z',
-  },
-]
-
-const mockPositions: Position[] = [
-  { id: '1', name: 'Разработчик' },
-  { id: '2', name: 'Тестировщик' },
-  { id: '3', name: 'Менеджер проектов' },
-  { id: '4', name: 'Дизайнер' },
-]
-
-const mockDepartments: Department[] = [
-  { id: '1', name: 'Разработка' },
-  { id: '2', name: 'Тестирование' },
-  { id: '3', name: 'Маркетинг' },
-  { id: '4', name: 'Продажи' },
-]
-
-const mockNotifications: Notification[] = []
 
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
-      employees: mockEmployees,
-      tracks: mockTracks,
-      articles: mockArticles,
-      users: mockUsers,
-      positions: mockPositions,
-      departments: mockDepartments,
-      notifications: mockNotifications,
+      employees: [],
+      tracks: [],
+      articles: [],
+      users: [],
+      positions: [],
+      departments: [],
+      notifications: [],
+      currentUser: null,
+      companyProfiles: [],
+      currentCompanyProfile: null,
       
       // Employee methods
       setEmployees: (employees) => set({ employees }),
-      addEmployee: (employee) => set((state) => {
-        const newEmployee = {
-          ...employee,
-          id: crypto.randomUUID(),
-          adaptationStatus: 'not_started' as AdaptationStatus,
-          accessLink: `${window.location.origin}/access/${crypto.randomUUID()}`,
-        }
-        return { employees: [...state.employees, newEmployee] }
-      }),
-      updateEmployee: (updatedEmployee) => set((state) => ({
-        employees: state.employees.map((employee) => 
-          employee.id === updatedEmployee.id ? updatedEmployee : employee
-        ),
-      })),
-      deleteEmployee: (id) => set((state) => ({
-        employees: state.employees.filter((employee) => employee.id !== id),
-      })),
-      assignMentor: (employeeId, mentorId) => {
-        const employee = get().employees.find(e => e.id === employeeId)
-        const mentor = get().employees.find(e => e.id === mentorId)
-        
-        set((state) => ({
-          employees: state.employees.map((e) =>
-            e.id === employeeId
-              ? { ...e, mentorId }
-              : e
-          ),
-        }))
-        
-        if (employee && mentor) {
-          get().addNotification({
-            type: 'mentor_assigned',
-            title: 'Назначен ментор',
-            message: `Сотруднику ${employee.fullName} назначен ментор: ${mentor.fullName}`,
-            employeeId,
-            data: { mentorId, mentorName: mentor.fullName }
-          })
+      fetchEmployees: async () => {
+        try {
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+        } catch (error) {
+          console.error('Error fetching employees:', error);
+          throw error;
         }
       },
-      removeMentor: (employeeId) => set((state) => ({
-        employees: state.employees.map((employee) =>
-          employee.id === employeeId
-            ? { ...employee, mentorId: undefined }
-            : employee
-        ),
-      })),
-      generateAccessLink: (employeeId) => {
-        const accessLink = `${window.location.origin}/access/${crypto.randomUUID()}`
-        set((state) => ({
-          employees: state.employees.map((employee) =>
-            employee.id === employeeId
-              ? { ...employee, accessLink }
-              : employee
-          ),
-        }))
-        return accessLink
+      addEmployee: async (employee) => {
+        try {
+          await apiClient.createEmployee(employee);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+        } catch (error) {
+          console.error('Error adding employee:', error);
+          throw error;
+        }
+      },
+      updateEmployee: async (updatedEmployee) => {
+        try {
+          await apiClient.updateEmployee(updatedEmployee.id, updatedEmployee);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+        } catch (error) {
+          console.error('Error updating employee:', error);
+          throw error;
+        }
+      },
+      deleteEmployee: async (id) => {
+        try {
+          await apiClient.deleteEmployee(id);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+        } catch (error) {
+          console.error('Error deleting employee:', error);
+          throw error;
+        }
+      },
+      assignMentor: async (employeeId, mentorId) => {
+        try {
+          await apiClient.assignMentor(employeeId, mentorId);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+          
+          // Local notification addition
+          const employee = get().employees.find(e => e.id === employeeId);
+          const mentor = get().employees.find(e => e.id === mentorId);
+        
+          if (employee && mentor) {
+            get().addNotification({
+              type: 'mentor_assigned',
+              title: 'Назначен ментор',
+              message: `Сотруднику ${employee.fullName} назначен ментор: ${mentor.fullName}`,
+              employeeId,
+              data: { mentorId, mentorName: mentor.fullName }
+            });
+          }
+        } catch (error) {
+          console.error('Error assigning mentor:', error);
+          throw error;
+        }
+      },
+      removeMentor: async (employeeId) => {
+        try {
+          await apiClient.removeMentor(employeeId);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+        } catch (error) {
+          console.error('Error removing mentor:', error);
+          throw error;
+        }
+      },
+      generateAccessLink: async (employeeId) => {
+        try {
+          const { accessLink } = await apiClient.generateEmployeeAccessLink(employeeId);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+          return accessLink;
+        } catch (error) {
+          console.error('Error generating access link:', error);
+          throw error;
+        }
+      },
+      updateStepProgress: async (employeeId, stepId, completed) => {
+        try {
+          const updatedEmployee = await apiClient.updateStepProgress(employeeId, stepId, completed);
+          set((state) => ({
+            employees: state.employees.map(emp => 
+              emp.id === employeeId ? updatedEmployee : emp
+            )
+          }));
+        } catch (error) {
+          console.error('Error updating step progress:', error);
+          throw error;
+        }
       },
       
       // Track methods
       setTracks: (tracks) => set({ tracks }),
-      assignTrack: (employeeId, trackId, startDate) => {
-        const track = get().tracks.find(t => t.id === trackId)
-        const employee = get().employees.find(e => e.id === employeeId)
-        
-        set((state) => ({
-          employees: state.employees.map((e) =>
-            e.id === employeeId
-              ? {
-                  ...e,
-                  adaptationStatus: 'in_progress',
-                  assignedTrackId: trackId,
-                  startDate,
-                  stepProgress: {}
-                }
-              : e
-          ),
-        }))
-        
-        if (employee && track) {
-          get().addNotification({
-            type: 'track_assigned',
-            title: 'Назначен трек адаптации',
-            message: `Сотруднику ${employee.fullName} назначен трек адаптации "${track.title}"`,
-            employeeId,
-            data: { trackId, trackTitle: track.title }
-          })
+      fetchTracks: async () => {
+        try {
+          const tracks = await apiClient.getTracks();
+          set({ tracks });
+        } catch (error) {
+          console.error('Error fetching tracks:', error);
+          throw error;
         }
       },
-      removeTrack: (employeeId) =>
-        set((state) => {
-          const employee = state.employees.find((e) => e.id === employeeId)
-          return {
-            employees: state.employees.map((e) =>
-              e.id === employeeId
-                ? {
-                    ...e,
-                    adaptationStatus: 'not_started',
-                    assignedTrackId: undefined,
-                    startDate: undefined,
-                    stepProgress: undefined
-                  }
-                : e
-            ),
+      createTrack: async (track) => {
+        try {
+          await apiClient.createTrack(track);
+          const tracks = await apiClient.getTracks();
+          set({ tracks });
+        } catch (error) {
+          console.error('Error creating track:', error);
+          throw error;
+        }
+      },
+      assignTrack: async (employeeId, trackId, startDate) => {
+        try {
+          await apiClient.assignTrack(employeeId, trackId, startDate);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+          
+          // Local notification addition
+          const track = get().tracks.find(t => t.id === trackId);
+          const employee = get().employees.find(e => e.id === employeeId);
+        
+          if (employee && track) {
+            get().addNotification({
+              type: 'track_assigned',
+              title: 'Назначен трек адаптации',
+              message: `Сотруднику ${employee.fullName} назначен трек адаптации "${track.title}"`,
+              employeeId,
+              data: { trackId, trackTitle: track.title }
+            });
           }
-        }),
-      updateTrack: (employeeId, trackId, startDate) =>
-        set((state) => ({
-          employees: state.employees.map((e) =>
-            e.id === employeeId
-              ? {
-                  ...e,
-                  assignedTrackId: trackId,
-                  startDate,
-                  stepProgress: {}
-                }
-              : e
-          ),
-        })),
-      updateTrackContent: (updatedTrack) =>
-        set((state) => ({
-          tracks: state.tracks.map((t) =>
-            t.id === updatedTrack.id ? updatedTrack : t
-          ),
-        })),
+        } catch (error) {
+          console.error('Error assigning track:', error);
+          throw error;
+        }
+      },
+      removeTrack: async (employeeId) => {
+        try {
+          await apiClient.removeEmployeeTrack(employeeId);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+        } catch (error) {
+          console.error('Error removing track:', error);
+          throw error;
+        }
+      },
+      updateTrack: async (employeeId, trackId, startDate) => {
+        try {
+          await apiClient.removeEmployeeTrack(employeeId);
+          await apiClient.assignTrack(employeeId, trackId, startDate);
+          const employees = await apiClient.getEmployees();
+          set({ employees });
+        } catch (error) {
+          console.error('Error updating track:', error);
+          throw error;
+        }
+      },
+      updateTrackContent: async (updatedTrack) => {
+        try {
+          await apiClient.updateTrack(updatedTrack.id, updatedTrack);
+          const tracks = await apiClient.getTracks();
+          set({ tracks });
+        } catch (error) {
+          console.error('Error updating track content:', error);
+          throw error;
+        }
+      },
         
       // Article methods  
       setArticles: (articles) => set({ articles }),
-      createArticle: (article) =>
-        set((state) => {
-          const now = new Date().toISOString()
-          const newArticle: Article = {
-            ...article,
-            id: String(Date.now()),
-            createdAt: now,
-            updatedAt: now,
-          }
-          return { articles: [...state.articles, newArticle] }
-        }),
-      updateArticle: (updatedArticle) =>
-        set((state) => ({
-          articles: state.articles.map((a) =>
-            a.id === updatedArticle.id ? updatedArticle : a
-          ),
-        })),
-      deleteArticle: (id) =>
-        set((state) => ({
-          articles: state.articles.filter((a) => a.id !== id),
-        })),
+      fetchArticles: async () => {
+        try {
+          const articles = await apiClient.getArticles();
+          set({ articles });
+        } catch (error) {
+          console.error('Error fetching articles:', error);
+          throw error;
+        }
+      },
+      createArticle: async (article) => {
+        try {
+          await apiClient.createArticle(article);
+          const articles = await apiClient.getArticles();
+          set({ articles });
+        } catch (error) {
+          console.error('Error creating article:', error);
+          throw error;
+        }
+      },
+      updateArticle: async (updatedArticle) => {
+        try {
+          await apiClient.updateArticle(updatedArticle.id, updatedArticle);
+          const articles = await apiClient.getArticles();
+          set({ articles });
+        } catch (error) {
+          console.error('Error updating article:', error);
+          throw error;
+        }
+      },
+      deleteArticle: async (id) => {
+        try {
+          await apiClient.deleteArticle(id);
+          const articles = await apiClient.getArticles();
+          set({ articles });
+        } catch (error) {
+          console.error('Error deleting article:', error);
+          throw error;
+        }
+      },
         
       // User methods
       setUsers: (users) => set({ users }),
-      addUser: (user) => set((state) => {
-        const newUser: User = {
-          ...user,
-          id: crypto.randomUUID(),
-          createdAt: new Date().toISOString(),
+      fetchUsers: async () => {
+        try {
+          const users = await apiClient.getUsers();
+          set({ users });
+        } catch (error) {
+          console.error('Error fetching users:', error);
+          throw error;
         }
-        return { users: [...state.users, newUser] }
-      }),
-      updateUser: (updatedUser) => set((state) => ({
-        users: state.users.map((user) => 
-          user.id === updatedUser.id ? updatedUser : user
-        ),
-      })),
-      deleteUser: (id) => set((state) => ({
-        users: state.users.filter((user) => user.id !== id),
-      })),
-      resetUserPassword: (id) => {
-        console.log(`Пароль сброшен для пользователя с ID ${id}. В реальном приложении письмо было бы отправлено на почту.`)
       },
-      changeUserRole: (id, role) => set((state) => ({
-        users: state.users.map((user) =>
-          user.id === id ? { ...user, role } : user
-        ),
-      })),
+      addUser: async (user) => {
+        try {
+          await apiClient.createUser(user);
+          const users = await apiClient.getUsers();
+          set({ users });
+        } catch (error) {
+          console.error('Error adding user:', error);
+          throw error;
+        }
+      },
+      updateUser: async (updatedUser) => {
+        try {
+          await apiClient.updateUser(updatedUser.id, updatedUser);
+          const users = await apiClient.getUsers();
+          set({ users });
+        } catch (error) {
+          console.error('Error updating user:', error);
+          throw error;
+        }
+      },
+      deleteUser: async (id) => {
+        try {
+          await apiClient.deleteUser(id);
+          const users = await apiClient.getUsers();
+          set({ users });
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          throw error;
+        }
+      },
+      resetUserPassword: async (id) => {
+        try {
+          await apiClient.resetUserPassword(id);
+          console.log(`Сброшен пароль для пользователя с ID ${id}`);
+        } catch (error) {
+          console.error('Error resetting password:', error);
+          throw error;
+        }
+      },
+      changeUserRole: async (id, role) => {
+        try {
+          await apiClient.changeUserRole(id, role);
+          const users = await apiClient.getUsers();
+          set({ users });
+        } catch (error) {
+          console.error('Error changing user role:', error);
+          throw error;
+        }
+      },
+      setCurrentUser: (user) => set({ currentUser: user }),
+      fetchCurrentUser: async () => {
+        try {
+          const user = await apiClient.getCurrentUser();
+          set({ currentUser: user });
+        } catch (error) {
+          console.error('Error fetching current user:', error);
+          throw error;
+        }
+      },
       
       // Dictionary methods
       setPositions: (positions) => set({ positions }),
-      addPosition: (position) => {
-        const newPosition = { ...position, id: crypto.randomUUID() }
-        set((state) => ({
-          positions: [...state.positions, newPosition],
-        }))
-        return newPosition
+      fetchPositions: async () => {
+        try {
+          const positions = await apiClient.getPositions();
+          set({ positions });
+        } catch (error) {
+          console.error('Error fetching positions:', error);
+          throw error;
+        }
       },
-      updatePosition: (updatedPosition) => set((state) => ({
-        positions: state.positions.map((position) => 
-          position.id === updatedPosition.id ? updatedPosition : position
-        ),
-      })),
-      deletePosition: (id) => set((state) => ({
-        positions: state.positions.filter((position) => position.id !== id),
-      })),
+      addPosition: async (position) => {
+        try {
+          const newPosition = await apiClient.createPosition(position);
+          const positions = await apiClient.getPositions();
+          set({ positions });
+          return newPosition;
+        } catch (error) {
+          console.error('Error adding position:', error);
+          throw error;
+        }
+      },
+      updatePosition: async (updatedPosition) => {
+        try {
+          await apiClient.updatePosition(updatedPosition.id, updatedPosition);
+          const positions = await apiClient.getPositions();
+          set({ positions });
+        } catch (error) {
+          console.error('Error updating position:', error);
+          throw error;
+        }
+      },
+      deletePosition: async (id) => {
+        try {
+          await apiClient.deletePosition(id);
+          const positions = await apiClient.getPositions();
+          set({ positions });
+        } catch (error) {
+          console.error('Error deleting position:', error);
+          throw error;
+        }
+      },
       
       setDepartments: (departments) => set({ departments }),
-      addDepartment: (department) => {
-        const newDepartment = { ...department, id: crypto.randomUUID() }
-        set((state) => ({
-          departments: [...state.departments, newDepartment],
-        }))
-        return newDepartment
+      fetchDepartments: async () => {
+        try {
+          const departments = await apiClient.getDepartments();
+          set({ departments });
+        } catch (error) {
+          console.error('Error fetching departments:', error);
+          throw error;
+        }
       },
-      updateDepartment: (updatedDepartment) => set((state) => ({
-        departments: state.departments.map((department) => 
-          department.id === updatedDepartment.id ? updatedDepartment : department
-        ),
-      })),
-      deleteDepartment: (id) => set((state) => ({
-        departments: state.departments.filter((department) => department.id !== id),
-      })),
+      addDepartment: async (department) => {
+        try {
+          const newDepartment = await apiClient.createDepartment(department);
+          set((state) => ({
+            departments: [...state.departments, newDepartment]
+          }));
+          return newDepartment;
+        } catch (error) {
+          console.error('Error adding department:', error);
+          throw error;
+        }
+      },
+      updateDepartment: async (updatedDepartment) => {
+        try {
+          await apiClient.updateDepartment(updatedDepartment.id, updatedDepartment);
+          set((state) => ({
+            departments: state.departments.map(d => 
+              d.id === updatedDepartment.id ? updatedDepartment : d
+            )
+          }));
+        } catch (error) {
+          console.error('Error updating department:', error);
+          throw error;
+        }
+      },
+      deleteDepartment: async (id) => {
+        try {
+          await apiClient.deleteDepartment(id);
+          set((state) => ({
+            departments: state.departments.filter(d => d.id !== id)
+          }));
+        } catch (error) {
+          console.error('Error deleting department:', error);
+          throw error;
+        }
+      },
 
       // Notification methods
+      fetchNotifications: async () => {
+        try {
+          const notifications = await apiClient.getNotifications();
+          set({ notifications });
+        } catch (error) {
+          console.error('Error fetching notifications:', error);
+          throw error;
+        }
+      },
       addNotification: (notification) => set((state) => {
         const newNotification = {
           ...notification,
@@ -409,25 +513,104 @@ export const useStore = create<AppState>()(
         return { notifications: [...state.notifications, newNotification] }
       }),
       
-      markNotificationAsRead: (id) => set((state) => ({
-        notifications: state.notifications.map((notification) => 
-          notification.id === id ? { ...notification, isRead: true } : notification
-        ),
-      })),
+      markNotificationAsRead: async (id) => {
+        try {
+          await apiClient.markNotificationAsRead(id);
+          const notifications = await apiClient.getNotifications();
+          set({ notifications });
+        } catch (error) {
+          console.error('Error marking notification as read:', error);
+          throw error;
+        }
+      },
       
-      markAllNotificationsAsRead: () => set((state) => ({
-        notifications: state.notifications.map((notification) => 
-          ({ ...notification, isRead: true })
-        ),
-      })),
+      markAllNotificationsAsRead: async () => {
+        try {
+          await apiClient.markAllNotificationsAsRead();
+          const notifications = await apiClient.getNotifications();
+          set({ notifications });
+        } catch (error) {
+          console.error('Error marking all notifications as read:', error);
+          throw error;
+        }
+      },
       
-      deleteNotification: (id) => set((state) => ({
-        notifications: state.notifications.filter((notification) => notification.id !== id),
-      })),
+      deleteNotification: async (id) => {
+        try {
+          await apiClient.deleteNotification(id);
+          const notifications = await apiClient.getNotifications();
+          set({ notifications });
+        } catch (error) {
+          console.error('Error deleting notification:', error);
+          throw error;
+        }
+      },
       
       getUnreadNotificationsCount: () => {
-        const { notifications } = get()
-        return notifications.filter(notification => !notification.isRead).length
+        const { notifications } = get();
+        return notifications.filter(notification => !notification.isRead).length;
+      },
+
+      // Company Profile methods
+      setCompanyProfiles: (profiles) => set({ companyProfiles: profiles }),
+      fetchCompanyProfiles: async () => {
+        try {
+          const profiles = await apiClient.getCompanyProfiles();
+          set({ companyProfiles: profiles });
+        } catch (error) {
+          console.error('Error fetching company profiles:', error);
+          throw error;
+        }
+      },
+      addCompanyProfile: async (profile) => {
+        try {
+          await apiClient.createCompanyProfile(profile);
+          const profiles = await apiClient.getCompanyProfiles();
+          set({ companyProfiles: profiles });
+        } catch (error) {
+          console.error('Error adding company profile:', error);
+          throw error;
+        }
+      },
+      updateCompanyProfile: async (updatedProfile) => {
+        try {
+          await apiClient.updateCompanyProfile(updatedProfile.id, updatedProfile);
+          const profiles = await apiClient.getCompanyProfiles();
+          set({ companyProfiles: profiles });
+        } catch (error) {
+          console.error('Error updating company profile:', error);
+          throw error;
+        }
+      },
+      deleteCompanyProfile: async (id) => {
+        try {
+          await apiClient.deleteCompanyProfile(id);
+          const profiles = await apiClient.getCompanyProfiles();
+          set({ companyProfiles: profiles.filter(p => p.id !== id) });
+        } catch (error) {
+          console.error('Error deleting company profile:', error);
+          throw error;
+        }
+      },
+      setCurrentCompanyProfile: (profile) => set({ currentCompanyProfile: profile }),
+      switchCompanyProfile: async (id) => {
+        try {
+          await apiClient.switchCompanyProfile(id);
+          const profile = await apiClient.getCurrentCompanyProfile();
+          set({ currentCompanyProfile: profile });
+        } catch (error) {
+          console.error('Error switching company profile:', error);
+          throw error;
+        }
+      },
+      getCurrentCompanyProfile: async () => {
+        try {
+          const profile = await apiClient.getCurrentCompanyProfile();
+          set({ currentCompanyProfile: profile });
+        } catch (error) {
+          console.error('Error fetching current company profile:', error);
+          throw error;
+        }
       },
     }),
     {

@@ -3,6 +3,7 @@ import { useTheme } from './theme-provider'
 import { Button } from './ui/button'
 import { Moon, Sun, Plus, Users, BookOpen, FileText, Settings, UserCheck } from 'lucide-react'
 import { NotificationIcon } from './ui/notifications'
+import { UserMenu } from './user-menu'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -13,7 +14,7 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation()
 
   const isActive = (path: string) => location.pathname === path
-  const isTrackEditor = location.pathname === '/tracks/new'
+  const isTrackEditor = location.pathname === '/tracks/new' || (location.pathname.includes('tracks') && location.pathname.includes('edit'))
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,24 +57,9 @@ export function Layout({ children }: LayoutProps) {
               </Button>
             </nav>
           </div>
-          <div className="flex flex-1 items-center justify-end space-x-2">
-            {location.pathname === '/employees' && (
-              <Button asChild>
-                <Link to="/employees/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Добавить сотрудника
-                </Link>
-              </Button>
-            )}
-            {location.pathname === '/tracks' && (
-              <Button asChild>
-                <Link to="/tracks/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Создать трек
-                </Link>
-              </Button>
-            )}
+          <div className="ml-auto flex items-center space-x-2">
             <NotificationIcon />
+            <UserMenu />
             <Button
               variant="ghost"
               size="icon"

@@ -8,15 +8,6 @@ services:
       - "3000:80"
     networks:
       - hr-network
-
-  candidate-swiper:
-    build:
-      context: ./candidate-swiper
-    ports:
-      - "3001:80"
-    networks:
-      - hr-network
-
   adaptation-lending:
     build:
       context: ./adaptation-lending
@@ -42,6 +33,19 @@ services:
       context: ./adaptation-admin/adaptation-admin
     ports:
       - "3004:80"
+    networks:
+      - hr-network
+
+  adaptation-server:
+    build:
+      context: ./adaptation-server
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Jwt__Key=your-super-secret-key-with-at-least-32-characters
+      - Jwt__Issuer=adaptation-server
+      - Jwt__Audience=adaptation-client
     networks:
       - hr-network
 

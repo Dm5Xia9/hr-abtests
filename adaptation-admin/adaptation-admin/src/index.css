@@ -73,4 +73,69 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom Auth Page Styles */
+.auth-page-background {
+  background-color: #F9FAFB;
+}
+
+.dark .auth-page-background {
+  background-color: #111827;
+}
+
+.auth-page-brand-section {
+  background-color: #6366F1;
+}
+
+.dark .auth-page-brand-section {
+  background-color: #4F46E5;
+}
+
+.auth-page-accent {
+  color: #10B981;
+}
+
+.dark .auth-page-accent {
+  color: #0EA5E9;
+}
+
+.auth-page-button-primary {
+  background-color: #6366F1;
+}
+
+.auth-page-button-primary:hover {
+  background-color: #4F46E5;
+}
+
+.dark .auth-page-button-primary {
+  background-color: #6366F1;
+}
+
+.dark .auth-page-button-primary:hover {
+  background-color: #818CF8;
+}
+
+.auth-page-button-accent {
+  background-color: #10B981;
+}
+
+.auth-page-button-accent:hover {
+  background-color: #059669;
+}
+
+.dark .auth-page-button-accent {
+  background-color: #0EA5E9;
+}
+
+.dark .auth-page-button-accent:hover {
+  background-color: #38BDF8;
+}
+
+.auth-page-text {
+  color: #111827;
+}
+
+.dark .auth-page-text {
+  color: #E5E7EB;
 } 

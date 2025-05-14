@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '@/store'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,15 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Users, UserCheck } from 'lucide-react'
 
 export function MyMenteesPage() {
-  const { employees, users } = useStore()
+  const { employees, fetchCurrentUser, currentUser } = useStore()
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
   
-  // В реальном приложении id текущего пользователя должен приходить из AuthContext
-  // Для примера используем фиксированный ID пользователя
-  const currentUserId = '2' // Иван Петров (менеджер)
+  useEffect(() => {
+    fetchCurrentUser()
+  }, [fetchCurrentUser])
   
   // Находим всех сотрудников, для которых текущий пользователь является ментором
-  const myMentees = employees.filter(employee => employee.mentorId === currentUserId)
+  const myMentees = employees.filter(employee => employee.mentorId === currentUser?.id)
   
   const selectedEmployee = selectedEmployeeId 
     ? employees.find(employee => employee.id === selectedEmployeeId)

@@ -34,12 +34,16 @@ export function AssignMentor({ open, onOpenChange, employee }: AssignMentorProps
     setSelectedMentorId(employee.mentorId)
   }, [employee.mentorId])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (selectedMentorId) {
-      assignMentor(employee.id, selectedMentorId)
-      onOpenChange(false)
+      try {
+        await assignMentor(employee.id, selectedMentorId)
+        onOpenChange(false)
+      } catch (error) {
+        console.error('Failed to assign mentor:', error)
+      }
     }
   }
 

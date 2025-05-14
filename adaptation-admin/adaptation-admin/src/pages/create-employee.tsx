@@ -4,12 +4,33 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { EmployeeForm } from '@/components/employee-form'
 
+
 export function CreateEmployeePage() {
   const navigate = useNavigate()
-  const { addEmployee } = useStore()
+  const { addEmployee, positions, departments } = useStore()
 
+    // Helper function to get position name by ID
+    const getPosition = (positionName: string) => {
+      const position = positions.find(p => p.name === positionName)
+      return position
+    }
+  
+    // Helper function to get department name by ID
+    const getDepartment = (departmentName: string) => {
+      const department = departments.find(d => d.name === departmentName)
+      return department
+    }
+  
   const handleSubmit = (formData: any) => {
-    addEmployee(formData)
+    addEmployee({
+      fullName: formData.fullName,
+      positionId: getPosition(formData.position)?.id || '',
+      departmentId: getDepartment(formData.department)?.id || '',
+      email: formData.email,
+      hireDate: formData.hireDate,
+      phone: formData.phone,
+      stepProgress: {},
+    })
     navigate('/employees')
   }
 

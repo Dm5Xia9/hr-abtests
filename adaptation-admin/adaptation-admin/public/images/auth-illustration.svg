@@ -1,0 +1,41 @@
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Pattern -->
+  <rect width="400" height="300" fill="#5D5FEF" opacity="0.1"/>
+  <path d="M0 0L400 300" stroke="white" stroke-width="2" stroke-dasharray="8 8" opacity="0.2"/>
+  <path d="M400 0L0 300" stroke="white" stroke-width="2" stroke-dasharray="8 8" opacity="0.2"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="80" cy="60" r="20" fill="#10B981" opacity="0.7"/>
+  <circle cx="320" cy="240" r="25" fill="#10B981" opacity="0.5"/>
+  <rect x="280" y="40" width="40" height="40" rx="8" fill="white" opacity="0.2"/>
+  <rect x="70" y="230" width="30" height="30" rx="6" fill="white" opacity="0.2"/>
+  
+  <!-- Abstract Building/Company -->
+  <rect x="150" y="130" width="100" height="120" rx="4" fill="white" opacity="0.9"/>
+  <rect x="170" y="150" width="25" height="25" rx="2" fill="#6366F1" opacity="0.7"/>
+  <rect x="205" y="150" width="25" height="25" rx="2" fill="#10B981" opacity="0.7"/>
+  <rect x="170" y="185" width="25" height="25" rx="2" fill="#6366F1" opacity="0.7"/>
+  <rect x="205" y="185" width="25" height="25" rx="2" fill="#10B981" opacity="0.7"/>
+  <rect x="180" y="110" width="40" height="20" rx="4" fill="white" opacity="0.9"/>
+  
+  <!-- Person 1 (Left) -->
+  <circle cx="110" cy="150" r="20" fill="white"/>
+  <circle cx="110" cy="135" r="10" fill="white"/>
+  <path d="M95 160 Q110 180 125 160" stroke="white" stroke-width="2" fill="none"/>
+  
+  <!-- Person 2 (Right) -->
+  <circle cx="290" cy="150" r="20" fill="white"/>
+  <circle cx="290" cy="135" r="10" fill="white"/>
+  <path d="M275 160 Q290 180 305 160" stroke="white" stroke-width="2" fill="none"/>
+  
+  <!-- Connection Lines -->
+  <path d="M130 150 L150 150" stroke="white" stroke-width="2" stroke-dasharray="4 2"/>
+  <path d="M250 150 L270 150" stroke="white" stroke-width="2" stroke-dasharray="4 2"/>
+  
+  <!-- Text Labels -->
+  <rect x="120" y="80" width="160" height="30" rx="15" fill="#10B981" opacity="0.9"/>
+  <text x="200" y="100" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">ADAPTATION</text>
+  
+  <rect x="140" y="220" width="120" height="25" rx="12.5" fill="#6366F1" opacity="0.9"/>
+  <text x="200" y="237" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">ONBOARDING</text>
+</svg> 

@@ -57,14 +57,11 @@ public class AuthController : ControllerBase
 
         // Get user's company role if they have a current company
         string role = "guest";
-        if (user.CurrentCompanyId.HasValue)
+        var companyMember = await _context.CompanyMembers
+                 .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == user.CurrentCompanyId);
+        if (companyMember != null)
         {
-            var companyMember = await _context.CompanyMembers
-                .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == user.CurrentCompanyId);
-            if (companyMember != null)
-            {
-                role = companyMember.Role;
-            }
+            role = companyMember.Role;
         }
 
         // Create claims for the user
@@ -73,14 +70,11 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email!),
             new Claim(ClaimTypes.Name, user.Name),
-            new Claim(ClaimTypes.Role, role)
+            new Claim(ClaimTypes.Role, role),
+            // Add company claim if available
+            new Claim("CompanyId", user.CurrentCompanyId.ToString())
         };
 
-        // Add company claim if available
-        if (user.CurrentCompanyId.HasValue)
-        {
-            claims.Add(new Claim("CompanyId", user.CurrentCompanyId.Value.ToString()));
-        }
 
         // Sign in the user using cookies
         var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -109,7 +103,7 @@ public class AuthController : ControllerBase
                 Role = role,
                 CreatedAt = user.CreatedAt.ToString("o"),
                 LastLogin = user.LastLogin?.ToString("o"),
-                CurrentCompanyId = user.CurrentCompanyId?.ToString()
+                CurrentCompanyId = user.CurrentCompanyId.ToString()
             }
         });
     }
@@ -152,12 +146,14 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Email already exists" });
         }
 
+        var userId = Guid.NewGuid();
+
         var user = new User
         {
             UserName = model.Email,
             Email = model.Email,
             Name = model.Name,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
         };
 
         var result = await _userManager.CreateAsync(user, model.Password);
@@ -165,6 +161,31 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new { message = "Failed to create user", errors = result.Errors });
         }
+
+        var company = new CompanyProfile
+        {
+            Name = "Личная компания",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Size = "small",
+            OwnerId = user.Id,
+        };
+        _context.CompanyProfiles.Update(company);
+        await _context.SaveChangesAsync();
+
+        user.CompanyMemberships.Add(new CompanyMember
+        {
+            CompanyProfile = company,
+            Role = "admin", // Owner gets admin role
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        user.CurrentCompanyId = company.Id;
+
+        _context.Users.Update(user);
+
+        await _context.SaveChangesAsync();
 
         // If company profile ID is provided, create company membership
         if (model.CompanyProfileId.HasValue)
@@ -208,14 +229,9 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email!),
             new Claim(ClaimTypes.Name, user.Name),
-            new Claim(ClaimTypes.Role, role)
+            new Claim(ClaimTypes.Role, role),
+            new Claim("CompanyId", user.CurrentCompanyId.ToString())
         };
-
-        // Add company claim if available
-        if (user.CurrentCompanyId.HasValue)
-        {
-            claims.Add(new Claim("CompanyId", user.CurrentCompanyId.Value.ToString()));
-        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

@@ -51,7 +51,7 @@ public class PositionsController : ControllerBase
 
         var position = await _context.Positions
             .FirstOrDefaultAsync(p => p.Id == id && p.CompanyProfileId == companyId.Value);
-            
+
         if (position == null)
         {
             return NotFound(new { message = "Position not found" });
@@ -98,7 +98,7 @@ public class PositionsController : ControllerBase
 
         var existingPosition = await _context.Positions
             .FirstOrDefaultAsync(p => p.Id == id && p.CompanyProfileId == companyId.Value);
-            
+
         if (existingPosition == null)
         {
             return NotFound(new { message = "Position not found" });
@@ -135,16 +135,16 @@ public class PositionsController : ControllerBase
 
         var position = await _context.Positions
             .FirstOrDefaultAsync(p => p.Id == id && p.CompanyProfileId == companyId.Value);
-            
+
         if (position == null)
         {
             return NotFound(new { message = "Position not found" });
         }
 
         // Check if position is in use
-        var isInUse = await _context.Employees
-            .AnyAsync(e => e.PositionId == id && e.CompanyProfileId == companyId.Value);
-            
+        var isInUse = await _context.CompanyMembers
+            .AnyAsync(e => e.PositionId == id);
+
         if (isInUse)
         {
             return BadRequest(new { message = "Cannot delete position that is assigned to employees" });

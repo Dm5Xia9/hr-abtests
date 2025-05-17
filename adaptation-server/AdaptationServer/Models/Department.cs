@@ -15,9 +15,9 @@ public class Department
     public string? Description { get; set; }
 
     public Guid CompanyProfileId { get; set; }
-    
+
     public CompanyProfile CompanyProfile { get; set; } = null!;
 
     // Навигационное свойство для связи с сотрудниками
-    public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
-} 
+    public virtual ICollection<CompanyMember> Users { get; set; } = [];
+}

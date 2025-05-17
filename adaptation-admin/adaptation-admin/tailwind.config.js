@@ -66,10 +66,77 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        "fadeIn": {
+          "0%": { opacity: 0 },
+          "100%": { opacity: 1 }
+        },
+        "scaleIn": {
+          "0%": { transform: "scale(0.95)", opacity: 0 },
+          "100%": { transform: "scale(1)", opacity: 1 }
+        },
+        "slideUp": {
+          "0%": { transform: "translateY(10px)", opacity: 0 },
+          "100%": { transform: "translateY(0)", opacity: 1 }
+        },
+        "slideDown": {
+          "0%": { transform: "translateY(-10px)", opacity: 0 },
+          "100%": { transform: "translateY(0)", opacity: 1 }
+        },
+        "pulse": {
+          "0%, 100%": { opacity: 1 },
+          "50%": { opacity: 0.7 }
+        },
+        "shake": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-2px)" },
+          "20%, 40%, 60%, 80%": { transform: "translateX(2px)" }
+        },
+        "pageFlipLeft": {
+          "0%": { 
+            transform: "rotateY(0deg)", 
+            transformOrigin: "left center",
+            boxShadow: "0 0 0 rgba(0, 0, 0, 0)"
+          },
+          "100%": { 
+            transform: "rotateY(-25deg)", 
+            transformOrigin: "left center",
+            boxShadow: "10px 0 15px rgba(0, 0, 0, 0.1)"
+          }
+        },
+        "pageFlipRight": {
+          "0%": { 
+            transform: "rotateY(0deg)", 
+            transformOrigin: "right center",
+            boxShadow: "0 0 0 rgba(0, 0, 0, 0)"
+          },
+          "100%": { 
+            transform: "rotateY(25deg)", 
+            transformOrigin: "right center",
+            boxShadow: "-10px 0 15px rgba(0, 0, 0, 0.1)"
+          }
+        },
+        "slideInLeft": {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(0)" }
+        },
+        "slideInRight": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(0)" }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fadeIn": "fadeIn 0.5s ease-out",
+        "scaleIn": "scaleIn 0.4s ease-out",
+        "slideUp": "slideUp 0.3s ease-out",
+        "slideDown": "slideDown 0.3s ease-out",
+        "pulse": "pulse 2s ease-in-out infinite",
+        "shake": "shake 0.5s ease-in-out",
+        "pageFlipLeft": "pageFlipLeft 0.4s ease-out",
+        "pageFlipRight": "pageFlipRight 0.4s ease-out",
+        "slideInLeft": "slideInLeft 0.4s ease-out",
+        "slideInRight": "slideInRight 0.4s ease-out"
       },
       typography: {
         DEFAULT: {

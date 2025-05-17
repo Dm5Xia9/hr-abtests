@@ -103,7 +103,7 @@ public class ArticlesController : ControllerBase
 
         var existingArticle = await _context.Articles
             .FirstOrDefaultAsync(a => a.Id == id && a.CompanyProfileId == companyId.Value);
-        
+
         if (existingArticle == null)
         {
             return NotFound(new { message = "Article not found" });
@@ -143,7 +143,7 @@ public class ArticlesController : ControllerBase
 
         var article = await _context.Articles
             .FirstOrDefaultAsync(a => a.Id == id && a.CompanyProfileId == companyId.Value);
-            
+
         if (article == null)
         {
             return NotFound(new { message = "Article not found" });

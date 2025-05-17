@@ -22,4 +22,5 @@ public class Track
     public Guid CompanyProfileId { get; set; }
     
     public CompanyProfile CompanyProfile { get; set; } = null!;
+    public ICollection<UserTrack> EmployeeTracks { get; set; } = new List<UserTrack>();
 }

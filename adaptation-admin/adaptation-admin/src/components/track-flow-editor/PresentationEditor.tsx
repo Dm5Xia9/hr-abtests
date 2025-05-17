@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -64,7 +64,17 @@ import {
   HelpCircle,
   Check,
   CheckCircle2,
-  CircleOff
+  CircleOff,
+  Upload,
+  AlertCircle,
+  Loader2,
+  Package,
+  FileText as FileIcon,
+  ChevronUp,
+  ChevronDown,
+  MoreVertical,
+  PlusCircle,
+  Sparkles
 } from 'lucide-react'
 import { 
   PresentationStage, 
@@ -77,158 +87,150 @@ import {
 } from '@/types'
 import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useToast } from '@/components/ui/use-toast'
+import { importScormPackage } from '@/utils/scorm-import'
+import { importPptxPackage } from '@/utils/pptx-import'
+import { importPdfFile } from '@/utils/pdf-import'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
+import { uploadImage, uploadImageFromUrl, normalizeImageUrl } from '@/utils/file-storage'
 
-// Create local RadioGroup components to avoid the import error
-const RadioGroup = ({ 
-  value, 
-  onValueChange, 
-  className, 
-  children 
-}: { 
-  value: string; 
-  onValueChange: (value: string) => void; 
-  className?: string; 
-  children: React.ReactNode;
-}) => {
-  return (
-    <div className={cn("flex flex-col space-y-2", className)}>
-      {children}
-    </div>
-  );
-};
+// Import components
+import {
+  SlideList,
+  SlideEditorView,
+  SlidePreview,
+  FullscreenPreview,
+  AddSlideDialog,
+  ImportDialog,
+  PresentationEditorProps,
+  createNewSlide,
+  getSlidePreview,
+  getSlideTypeIcon,
+  getSlideTypeName,
+  updateSlide
+} from './presentation-editor'
 
-const RadioGroupItem = ({ 
-  value, 
-  id 
-}: { 
-  value: string; 
-  id: string; 
-}) => {
-  return (
-    <div className="flex items-center space-x-2">
-      <input 
-        type="radio" 
-        id={id} 
-        value={value} 
-        className="h-4 w-4 text-primary border-muted-foreground focus:ring-primary" 
-      />
-    </div>
-  );
-};
-
-interface PresentationEditorProps {
-  stage: PresentationStage
-  onChange: (content: PresentationStage['content']) => void
-}
+// Import AI components
+import { PresentationAIGenerator } from './presentation-editor/ai'
 
 export function PresentationEditor({ stage, onChange }: PresentationEditorProps) {
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [selectedSlide, setSelectedSlide] = useState<Slide | null>(null)
-  const [previewMode, setPreviewMode] = useState(false)
-  const [showFullscreenPreview, setShowFullscreenPreview] = useState(false)
-  const [currentPreviewSlideIndex, setCurrentPreviewSlideIndex] = useState(0)
+  // State
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [selectedSlide, setSelectedSlide] = useState<Slide | null>(null);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
+  const [currentPreviewSlideIndex, setCurrentPreviewSlideIndex] = useState(0);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [slideToAddPosition, setSlideToAddPosition] = useState<'before' | 'after' | null>(null);
+  const [showSlideMenu, setShowSlideMenu] = useState<string | null>(null);
+  const [containerHeight, setContainerHeight] = useState('calc(100vh - 64px)');
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+  
+  // Refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
+  // Update container height on mount and resize
+  useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const windowHeight = window.innerHeight;
+        const offsetTop = containerRef.current.getBoundingClientRect().top;
+        const newHeight = `${windowHeight - offsetTop - 20}px`;
+        setContainerHeight(newHeight);
+      }
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    
+    // Apply CSS variable for height
+    document.documentElement.style.setProperty('--editor-height', containerHeight);
+    
+    return () => window.removeEventListener('resize', updateHeight);
+  }, [containerHeight]);
+
+  // Close slide menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showSlideMenu) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.slide-menu') && !target.closest('.menu-trigger')) {
+          setShowSlideMenu(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSlideMenu]);
+
+  // Event handlers
   const handleAddSlide = (type: Slide['type']) => {
-    const baseSlide = {
-      id: crypto.randomUUID(),
-      type
-    }
+    const newSlide = createNewSlide(type);
 
-    let newSlide: Slide
-    switch (type) {
-      case 'text':
-        newSlide = {
-          ...baseSlide,
-          type: 'text',
-          content: ''
-        } as TextSlide
-        break
-      case 'video':
-        newSlide = {
-          ...baseSlide,
-          type: 'video',
-          url: '',
-          caption: ''
-        } as VideoSlide
-        break
-      case 'image':
-        newSlide = {
-          ...baseSlide,
-          type: 'image',
-          url: '',
-          caption: ''
-        } as ImageSlide
-        break
-      case 'test':
-        newSlide = {
-          ...baseSlide,
-          type: 'test',
-          question: '',
-          options: [
-            {
-              id: crypto.randomUUID(),
-              text: '',
-              isCorrect: false
-            },
-            {
-              id: crypto.randomUUID(),
-              text: '',
-              isCorrect: false
-            }
-          ],
-          testType: 'single',
-          explanation: ''
-        } as TestSlide
-        break
-      default:
-        return
+    // Add slide at specific position or at the end
+    if (selectedSlide && slideToAddPosition) {
+      const slides = [...stage.content.slides];
+      const selectedIndex = slides.findIndex(slide => slide.id === selectedSlide.id);
+      
+      if (selectedIndex !== -1) {
+        const insertIndex = slideToAddPosition === 'before' ? selectedIndex : selectedIndex + 1;
+        slides.splice(insertIndex, 0, newSlide);
+        onChange({ slides });
+      } else {
+        onChange({ slides: [...slides, newSlide] });
+      }
+    } else {
+      // Add to the end
+      onChange({
+        slides: [...stage.content.slides, newSlide]
+      });
     }
+    
+    setShowAddDialog(false);
+    setSelectedSlide(newSlide);
+    setSlideToAddPosition(null);
+  };
 
-    onChange({
-      slides: [...stage.content.slides, newSlide]
-    })
-    setShowAddDialog(false)
-    setSelectedSlide(newSlide)
-  }
+  const handleAddSlideAt = (position: 'before' | 'after', slide: Slide) => {
+    setSelectedSlide(slide);
+    setSlideToAddPosition(position);
+    setShowAddDialog(true);
+    setShowSlideMenu(null);
+  };
 
   const handleDeleteSlide = (id: string) => {
     onChange({
       slides: stage.content.slides.filter(s => s.id !== id)
-    })
-    if (selectedSlide?.id === id) {
-      setSelectedSlide(null)
-    }
-  }
-
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return
-
-    const items = Array.from(stage.content.slides)
-    const [reorderedItem] = items.splice(result.source.index, 1)
-    items.splice(result.destination.index, 0, reorderedItem)
-
-    onChange({ slides: items })
-  }
-
-  const handleSlideChange = (id: string, updates: Partial<Slide>) => {
-    const updatedSlides = stage.content.slides.map(slide => {
-      if (slide.id !== id) return slide;
-      
-      // Create type-safe updates based on slide type
-      switch (slide.type) {
-        case 'text':
-          return { ...slide, ...updates } as TextSlide;
-        case 'video':
-          return { ...slide, ...updates } as VideoSlide;
-        case 'image':
-          return { ...slide, ...updates } as ImageSlide;
-        case 'test':
-          return { ...slide, ...updates } as TestSlide;
-        default:
-          return slide;
-      }
     });
     
+    if (selectedSlide?.id === id) {
+      setSelectedSlide(null);
+    }
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(stage.content.slides);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    onChange({ slides: items });
+  };
+
+  const handleSlideChange = (id: string, updates: Partial<Slide>) => {
+    const updatedSlides = updateSlide(stage.content.slides, id, updates);
     onChange({ slides: updatedSlides });
 
     // Update selected slide if it's being edited
@@ -236,483 +238,7 @@ export function PresentationEditor({ stage, onChange }: PresentationEditorProps)
       const updatedSlide = updatedSlides.find(s => s.id === id) || null;
       setSelectedSlide(updatedSlide);
     }
-  }
-
-  const getSlidePreview = (slide: Slide) => {
-    switch (slide.type) {
-      case 'text':
-        const textSlide = slide as TextSlide
-        return (
-          <div className="p-2 overflow-hidden">
-            <p className="text-sm line-clamp-3">{textSlide.content || 'Пустой текстовый слайд'}</p>
-          </div>
-        )
-      case 'video':
-        const videoSlide = slide as VideoSlide
-        return (
-          <div className="p-2">
-            <div className="aspect-video bg-muted flex items-center justify-center rounded">
-              <Video className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <p className="text-xs mt-1 truncate">{videoSlide.url || 'URL видео не указан'}</p>
-          </div>
-        )
-      case 'image':
-        const imageSlide = slide as ImageSlide
-        return (
-          <div className="p-2">
-            {imageSlide.url ? (
-              <div className="aspect-video bg-muted rounded overflow-hidden">
-                <img 
-                  src={imageSlide.url} 
-                  alt={imageSlide.caption || 'Изображение'} 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="aspect-video bg-muted flex items-center justify-center rounded">
-                <ImageIcon className="h-6 w-6 text-muted-foreground" />
-              </div>
-            )}
-            <p className="text-xs mt-1 truncate">{imageSlide.caption || 'Изображение без подписи'}</p>
-          </div>
-        )
-      case 'test':
-        const testSlide = slide as TestSlide
-        return (
-          <div className="p-2">
-            <div className="flex items-center justify-center rounded h-16 bg-orange-100">
-              <HelpCircle className="h-6 w-6 text-orange-600 mr-2" />
-              <span className="text-sm font-medium text-orange-800">
-                {testSlide.testType === 'single' ? 'Тест с одним ответом' : 'Тест с множеством ответов'}
-              </span>
-            </div>
-            <p className="text-xs mt-1 truncate">{testSlide.question || 'Вопрос теста не указан'}</p>
-          </div>
-        )
-      default:
-        return <div>Неизвестный тип слайда</div>
-    }
-  }
-
-  const TextEditor = ({ content, onChange }: { content: string, onChange: (content: string) => void }) => {
-    const editor = useEditor({
-      extensions: [
-        StarterKit,
-        Link.configure({
-          openOnClick: false,
-        }),
-        Image,
-        Placeholder.configure({
-          placeholder: 'Введите текст слайда...',
-        }),
-      ],
-      content,
-      onUpdate: ({ editor }) => {
-        onChange(editor.getHTML())
-      },
-    })
-  
-    if (!editor) {
-      return <div>Загрузка редактора...</div>
-  }
-
-  return (
-      <div className="border rounded-lg">
-        <div className="border-b p-2 flex flex-wrap gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            disabled={!editor.can().chain().focus().toggleBold().run()}
-            className={editor.isActive('bold') ? 'bg-muted' : ''}
-          >
-            <Bold className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            disabled={!editor.can().chain().focus().toggleItalic().run()}
-            className={editor.isActive('italic') ? 'bg-muted' : ''}
-          >
-            <Italic className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            disabled={!editor.can().chain().focus().toggleStrike().run()}
-            className={editor.isActive('strike') ? 'bg-muted' : ''}
-          >
-            <Strikethrough className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={editor.isActive('heading', { level: 1 }) ? 'bg-muted' : ''}
-          >
-            <Heading1 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}
-          >
-            <Heading2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={editor.isActive('bulletList') ? 'bg-muted' : ''}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={editor.isActive('orderedList') ? 'bg-muted' : ''}
-          >
-            <ListOrdered className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            className={editor.isActive('blockquote') ? 'bg-muted' : ''}
-          >
-            <Quote className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const url = window.prompt('URL')
-              if (url) {
-                editor.chain().focus().setLink({ href: url }).run()
-              }
-            }}
-            className={editor.isActive('link') ? 'bg-muted' : ''}
-          >
-            <LinkIcon className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().undo().run()}
-            disabled={!editor.can().chain().focus().undo().run()}
-          >
-            <Undo className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().redo().run()}
-            disabled={!editor.can().chain().focus().redo().run()}
-          >
-            <Redo className="h-4 w-4" />
-          </Button>
-        </div>
-        <EditorContent
-          editor={editor}
-          className="prose prose-sm max-w-none p-4 min-h-[300px] focus:outline-none"
-        />
-      </div>
-    )
-  }
-
-  const getSlideEditor = (slide: Slide) => {
-    switch (slide.type) {
-      case 'text':
-        const textSlide = slide as TextSlide
-        return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="text-content">Содержимое</Label>
-              <TextEditor 
-                content={textSlide.content}
-                onChange={(content) => handleSlideChange(slide.id, { content })}
-              />
-            </div>
-          </div>
-        )
-      case 'video':
-        const videoSlide = slide as VideoSlide
-        return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="video-url">URL видео</Label>
-              <Input
-                id="video-url"
-                value={videoSlide.url}
-                onChange={e => handleSlideChange(slide.id, { url: e.target.value })}
-                placeholder="https://www.youtube.com/watch?v=..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="video-caption">Подпись</Label>
-              <Input
-                id="video-caption"
-                value={videoSlide.caption || ''}
-                onChange={e => handleSlideChange(slide.id, { caption: e.target.value })}
-                placeholder="Добавьте подпись к видео..."
-              />
-            </div>
-            {videoSlide.url && (
-              <div className="mt-4">
-                <h3 className="text-sm font-medium mb-2">Предпросмотр</h3>
-                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                  <iframe
-                    src={videoSlide.url.replace('watch?v=', 'embed/')}
-                    allowFullScreen
-                    className="w-full h-full"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      case 'image':
-        const imageSlide = slide as ImageSlide
-        return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="image-url">URL изображения</Label>
-              <Input
-                id="image-url"
-                value={imageSlide.url}
-                onChange={e => handleSlideChange(slide.id, { url: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="image-caption">Подпись</Label>
-              <Input
-                id="image-caption"
-                value={imageSlide.caption || ''}
-                onChange={e => handleSlideChange(slide.id, { caption: e.target.value })}
-                placeholder="Добавьте подпись к изображению..."
-              />
-            </div>
-            {imageSlide.url && (
-              <div className="mt-4">
-                <h3 className="text-sm font-medium mb-2">Предпросмотр</h3>
-                <div className="rounded-lg overflow-hidden border">
-                  <img
-                    src={imageSlide.url}
-                    alt={imageSlide.caption || 'Preview'}
-                    className="max-w-full max-h-[300px] object-contain mx-auto"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      case 'test':
-        const testSlide = slide as TestSlide
-        
-        const handleTestTypeChange = (value: 'single' | 'multiple') => {
-          // If changing from multiple to single, make sure only one answer is marked as correct
-          if (value === 'single') {
-            const correctOptions = testSlide.options.filter(o => o.isCorrect);
-            if (correctOptions.length > 1) {
-              const updatedOptions = [...testSlide.options];
-              // Keep only the first correct answer
-              updatedOptions.forEach((option, index) => {
-                if (option.isCorrect && index > updatedOptions.findIndex(o => o.isCorrect)) {
-                  option.isCorrect = false;
-                }
-              });
-              
-              handleSlideChange(slide.id, { 
-                testType: value,
-                options: updatedOptions
-              });
-              return;
-            }
-          }
-          
-          handleSlideChange(slide.id, { testType: value });
-        };
-        
-        const handleAddOption = () => {
-          const newOption: TestOption = {
-            id: crypto.randomUUID(),
-            text: '',
-            isCorrect: false
-          };
-          
-          handleSlideChange(slide.id, { 
-            options: [...testSlide.options, newOption]
-          });
-        };
-        
-        const handleDeleteOption = (optionId: string) => {
-          if (testSlide.options.length <= 2) {
-            // Должно остаться как минимум 2 варианта ответа
-            return;
-          }
-          
-          handleSlideChange(slide.id, { 
-            options: testSlide.options.filter(option => option.id !== optionId)
-          });
-        };
-        
-        const handleOptionChange = (optionId: string, updates: Partial<TestOption>) => {
-          const updatedOptions = testSlide.options.map(option => 
-            option.id === optionId ? { ...option, ...updates } : option
-          );
-          
-          // Для одиночного выбора только один ответ может быть правильным
-          if (testSlide.testType === 'single' && updates.isCorrect === true) {
-            updatedOptions.forEach(option => {
-              if (option.id !== optionId) {
-                option.isCorrect = false;
-              }
-            });
-          }
-          
-          handleSlideChange(slide.id, { options: updatedOptions });
-        };
-        
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="test-type">Тип теста</Label>
-              <Select
-                value={testSlide.testType}
-                onValueChange={(value) => handleTestTypeChange(value as 'single' | 'multiple')}
-              >
-                <SelectTrigger id="test-type">
-                  <SelectValue placeholder="Выберите тип теста" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single">Один правильный ответ</SelectItem>
-                  <SelectItem value="multiple">Несколько правильных ответов</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="test-question">Вопрос</Label>
-              <Textarea
-                id="test-question"
-                value={testSlide.question}
-                onChange={e => handleSlideChange(slide.id, { question: e.target.value })}
-                placeholder="Введите вопрос теста..."
-                rows={3}
-              />
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Варианты ответов</Label>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleAddOption}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Добавить вариант
-                </Button>
-              </div>
-              
-              <Card>
-                <CardContent className="p-4 space-y-4">
-                  {testSlide.options.map((option, index) => (
-                    <div key={option.id} className="flex items-start gap-2">
-                      <div className="mt-2">
-                        {testSlide.testType === 'single' ? (
-                          <RadioGroup
-                            value={option.isCorrect ? option.id : ''}
-                            onValueChange={(value) => handleOptionChange(option.id, { isCorrect: value === option.id })}
-                            className="flex"
-                          >
-                            <RadioGroupItem value={option.id} id={`option-${option.id}`} />
-                          </RadioGroup>
-                        ) : (
-                          <Checkbox
-                            checked={option.isCorrect}
-                            onCheckedChange={(checked) => 
-                              handleOptionChange(option.id, { isCorrect: checked === true })
-                            }
-                            id={`option-${option.id}`}
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <Input
-                          value={option.text}
-                          onChange={e => handleOptionChange(option.id, { text: e.target.value })}
-                          placeholder={`Вариант ${index + 1}`}
-                          className="flex-1"
-                        />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteOption(option.id)}
-                        disabled={testSlide.options.length <= 2}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="test-explanation">Пояснение (необязательно)</Label>
-              <Textarea
-                id="test-explanation"
-                value={testSlide.explanation || ''}
-                onChange={e => handleSlideChange(slide.id, { explanation: e.target.value })}
-                placeholder="Добавьте пояснение, которое будет показано после ответа..."
-                rows={3}
-              />
-            </div>
-          </div>
-        )
-      default:
-        return <div>Неизвестный тип слайда</div>
-    }
-  }
-
-  const getSlideTypeIcon = (type: Slide['type']) => {
-    switch (type) {
-      case 'text':
-        return <FileText className="h-4 w-4" />
-      case 'video':
-        return <Video className="h-4 w-4" />
-      case 'image':
-        return <ImageIcon className="h-4 w-4" />
-      case 'test':
-        return <HelpCircle className="h-4 w-4" />
-      default:
-        return null
-    }
-  }
-
-  const getSlideTypeName = (type: Slide['type']) => {
-    switch (type) {
-      case 'text':
-        return 'Текст'
-      case 'video':
-        return 'Видео'
-      case 'image':
-        return 'Изображение'
-      case 'test':
-        return 'Тест'
-      default:
-        return 'Неизвестный тип'
-    }
-  }
+  };
 
   const nextSlide = () => {
     if (stage.content.slides.length <= 1) return;
@@ -729,7 +255,7 @@ export function PresentationEditor({ stage, onChange }: PresentationEditorProps)
   };
 
   const handleStartPreview = () => {
-    // Если выбран слайд, начинаем с него
+    // Start preview from selected slide or first slide
     if (selectedSlide) {
       const index = stage.content.slides.findIndex(s => s.id === selectedSlide.id);
       if (index !== -1) {
@@ -743,207 +269,6 @@ export function PresentationEditor({ stage, onChange }: PresentationEditorProps)
     setShowFullscreenPreview(true);
   };
 
-  const FullscreenPreview = () => {
-    if (stage.content.slides.length === 0) return null;
-    
-    const currentSlide = stage.content.slides[currentPreviewSlideIndex];
-    const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-    const [showResults, setShowResults] = useState(false);
-    
-    const handleCheckAnswer = () => {
-      setShowResults(true);
-    };
-    
-    const handleNextAfterTest = () => {
-      setShowResults(false);
-      setSelectedOptions([]);
-      nextSlide();
-    };
-    
-    const handleOptionSelect = (optionId: string, testType: 'single' | 'multiple') => {
-      if (testType === 'single') {
-        setSelectedOptions([optionId]);
-      } else {
-        if (selectedOptions.includes(optionId)) {
-          setSelectedOptions(selectedOptions.filter(id => id !== optionId));
-        } else {
-          setSelectedOptions([...selectedOptions, optionId]);
-        }
-      }
-    };
-    
-    return (
-      <div className="fixed inset-0 bg-background z-50 flex flex-col">
-        {/* Верхняя панель с навигацией */}
-        <div className="p-4 flex items-center justify-between border-b">
-          <div className="flex items-center gap-2">
-            <Presentation className="h-5 w-5" />
-            <span className="font-medium">Презентация</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            Слайд {currentPreviewSlideIndex + 1} из {stage.content.slides.length}
-          </div>
-          <Button variant="ghost" size="icon" onClick={() => setShowFullscreenPreview(false)}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        {/* Содержимое слайда */}
-        <div className="flex-1 flex items-center justify-center p-8 relative">
-          <div className="max-w-4xl w-full mx-auto">
-            {currentSlide.type === 'text' && (
-              <div className="prose max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: (currentSlide as TextSlide).content }} />
-              </div>
-            )}
-            
-            {currentSlide.type === 'video' && (
-              <div className="space-y-4">
-                <div className="aspect-video">
-                  <iframe
-                    src={(currentSlide as VideoSlide).url.replace('watch?v=', 'embed/')}
-                    allowFullScreen
-                    className="w-full h-full rounded-lg"
-                  />
-                </div>
-                {(currentSlide as VideoSlide).caption && (
-                  <p className="text-center text-muted-foreground">
-                    {(currentSlide as VideoSlide).caption}
-                  </p>
-                )}
-              </div>
-            )}
-            
-            {currentSlide.type === 'image' && (
-              <div className="space-y-4">
-                <div className="flex justify-center">
-                  <img
-                    src={(currentSlide as ImageSlide).url}
-                    alt={(currentSlide as ImageSlide).caption || ''}
-                    className="max-h-[70vh] object-contain"
-                  />
-                </div>
-                {(currentSlide as ImageSlide).caption && (
-                  <p className="text-center text-muted-foreground">
-                    {(currentSlide as ImageSlide).caption}
-                  </p>
-                )}
-              </div>
-            )}
-            
-            {currentSlide.type === 'test' && (
-              <div className="space-y-8">
-                <div className="text-xl font-medium text-center">
-                  {(currentSlide as TestSlide).question}
-                </div>
-                
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {(currentSlide as TestSlide).options.map((option) => (
-                        <div 
-                          key={option.id} 
-                          className={cn(
-                            "flex items-center p-3 border rounded-md cursor-pointer transition-colors",
-                            !showResults && selectedOptions.includes(option.id) ? "bg-primary/10 border-primary" : "hover:bg-muted",
-                            showResults && option.isCorrect ? "bg-green-100 border-green-500" : "",
-                            showResults && !option.isCorrect && selectedOptions.includes(option.id) ? "bg-red-100 border-red-500" : ""
-                          )}
-                          onClick={() => !showResults && handleOptionSelect(option.id, (currentSlide as TestSlide).testType)}
-                        >
-                          <div className="mr-3">
-                            {(currentSlide as TestSlide).testType === 'single' ? (
-                              <div className={cn(
-                                "h-5 w-5 rounded-full border border-primary flex items-center justify-center",
-                                selectedOptions.includes(option.id) ? "bg-primary text-white" : "bg-background"
-                              )}>
-                                {selectedOptions.includes(option.id) && <Check className="h-3 w-3" />}
-                              </div>
-                            ) : (
-                              <div className={cn(
-                                "h-5 w-5 rounded-sm border border-primary flex items-center justify-center",
-                                selectedOptions.includes(option.id) ? "bg-primary text-white" : "bg-background"
-                              )}>
-                                {selectedOptions.includes(option.id) && <Check className="h-3 w-3" />}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            {option.text}
-                          </div>
-                          {showResults && (
-                            <div className="ml-3">
-                              {option.isCorrect ? (
-                                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                              ) : (
-                                <CircleOff className="h-5 w-5 text-red-600" />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {!showResults ? (
-                  <div className="flex justify-center">
-                    <Button 
-                      onClick={handleCheckAnswer}
-                      disabled={selectedOptions.length === 0}
-                      className="px-8"
-                    >
-                      Проверить
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {(currentSlide as TestSlide).explanation && (
-                      <Card className="bg-muted border-muted">
-                        <CardContent className="p-4">
-                          <p className="text-sm">
-                            {(currentSlide as TestSlide).explanation}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    )}
-                    <div className="flex justify-center">
-                      <Button onClick={handleNextAfterTest}>
-                        Далее
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Кнопки навигации */}
-          <div className="absolute top-1/2 left-4 -translate-y-1/2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full opacity-70 hover:opacity-100"
-              onClick={prevSlide}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="absolute top-1/2 right-4 -translate-y-1/2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full opacity-70 hover:opacity-100"
-              onClick={nextSlide}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const navigateToNextSlide = () => {
     if (!selectedSlide || stage.content.slides.length <= 1) return;
     
@@ -951,6 +276,14 @@ export function PresentationEditor({ stage, onChange }: PresentationEditorProps)
     if (currentIndex === -1) return;
     
     const nextIndex = (currentIndex + 1) % stage.content.slides.length;
+    console.log('PresentationEditor.navigateToNextSlide', {
+      currentSlideId: selectedSlide.id,
+      currentSlideType: selectedSlide.type,
+      nextSlideId: stage.content.slides[nextIndex].id,
+      nextSlideType: stage.content.slides[nextIndex].type,
+      slideCount: stage.content.slides.length
+    });
+    
     setSelectedSlide(stage.content.slides[nextIndex]);
   };
   
@@ -961,528 +294,251 @@ export function PresentationEditor({ stage, onChange }: PresentationEditorProps)
     if (currentIndex === -1) return;
     
     const prevIndex = (currentIndex - 1 + stage.content.slides.length) % stage.content.slides.length;
+    console.log('PresentationEditor.navigateToPrevSlide', {
+      currentSlideId: selectedSlide.id,
+      currentSlideType: selectedSlide.type,
+      prevSlideId: stage.content.slides[prevIndex].id,
+      prevSlideType: stage.content.slides[prevIndex].type,
+      slideCount: stage.content.slides.length
+    });
+    
     setSelectedSlide(stage.content.slides[prevIndex]);
   };
 
-  const SlideList = (
-    <div className="w-64 border-r h-full flex flex-col">
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-medium">Слайды</h3>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8" 
-              onClick={() => setPreviewMode(!previewMode)}
-              title={previewMode ? "Режим редактирования" : "Режим просмотра"}
-            >
-              {previewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
-            {stage.content.slides.length > 0 && (
-              <Button
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={handleStartPreview}
-                title="Полноэкранный просмотр"
-              >
-                <Maximize className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setShowAddDialog(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить слайд
-        </Button>
-      </div>
+  // Import handlers
+  const handleScormImport = async (file: File) => {
+    try {
+      setImportError(null);
+      setIsImporting(true);
+      
+      const importedSlides = await importScormPackage(file);
+      
+      onChange({
+        slides: [...stage.content.slides, ...importedSlides]
+      });
+      
+      setShowImportDialog(false);
+      toast({
+        title: "Импорт SCORM успешен",
+        description: `Импортировано ${importedSlides.length} слайдов из SCORM`,
+      });
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Ошибка при импорте SCORM');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+  
+  const handlePptxImport = async (file: File) => {
+    try {
+      setImportError(null);
+      setIsImporting(true);
+      
+      const importedSlides = await importPptxPackage(file);
+      
+      onChange({
+        slides: [...stage.content.slides, ...importedSlides]
+      });
+      
+      setShowImportDialog(false);
+      toast({
+        title: "Импорт PPTX успешен",
+        description: `Импортировано ${importedSlides.length} слайдов из PowerPoint`,
+      });
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Ошибка при импорте PPTX');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+  
+  const handlePdfImport = async (file: File) => {
+    try {
+      setImportError(null);
+      setIsImporting(true);
+      
+      const importedSlides = await importPdfFile(file);
+      
+      onChange({
+        slides: [...stage.content.slides, ...importedSlides]
+      });
+      
+      setShowImportDialog(false);
+      toast({
+        title: "Импорт PDF успешен",
+        description: `Импортировано ${importedSlides.length} слайдов из PDF`,
+      });
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Ошибка при импорте PDF');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="slides">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="flex-1 overflow-y-auto p-3 space-y-3"
-            >
-              {stage.content.slides.map((slide, index) => (
-                <Draggable
-                  key={slide.id}
-                  draggableId={slide.id}
-                  index={index}
-                >
-                  {(provided) => (
-                    <Card
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      className={cn(
-                        "overflow-hidden border transition-colors",
-                        selectedSlide?.id === slide.id
-                          ? "border-primary"
-                          : "hover:bg-muted/50"
-                      )}
-                      onClick={() => setSelectedSlide(slide)}
-                    >
-                      <CardHeader className="p-3 pb-0">
-                        <div className="flex items-center justify-between">
-                        <div
-                          {...provided.dragHandleProps}
-                            className="cursor-grab"
-                        >
-                          <GripVertical className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            {getSlideTypeIcon(slide.type)}
-                            <span>{getSlideTypeName(slide.type)}</span>
-                          </div>
-                                  <Button
-                                    variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteSlide(slide.id)
-                                    }}
-                                  >
-                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                              </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {getSlidePreview(slide)}
-                      </CardContent>
-                    </Card>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-              {stage.content.slides.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm">
-                  <p>Нет слайдов</p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="mt-2"
-                    onClick={() => setShowAddDialog(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Добавить слайд
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
-    </div>
-  )
-
-  const SlidePreview = selectedSlide ? (
-    <div className="flex-1 p-6 overflow-auto">
-      {previewMode ? (
-        <div className="max-w-3xl mx-auto relative">
-          {selectedSlide.type === 'text' && (
-            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: (selectedSlide as TextSlide).content }} />
-          )}
-          {selectedSlide.type === 'video' && (
-            <div className="space-y-4">
-              <div className="aspect-video">
-                <iframe
-                  src={(selectedSlide as VideoSlide).url.replace('watch?v=', 'embed/')}
-                  allowFullScreen
-                  className="w-full h-full rounded-lg"
-                />
-              </div>
-              {(selectedSlide as VideoSlide).caption && (
-                <p className="text-center text-muted-foreground">
-                  {(selectedSlide as VideoSlide).caption}
-                </p>
-              )}
-            </div>
-          )}
-          {selectedSlide.type === 'image' && (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <img
-                  src={(selectedSlide as ImageSlide).url}
-                  alt={(selectedSlide as ImageSlide).caption || 'Image'}
-                  className="max-h-[70vh] rounded-lg"
-                />
-              </div>
-              {(selectedSlide as ImageSlide).caption && (
-                <p className="text-center text-muted-foreground">
-                  {(selectedSlide as ImageSlide).caption}
-                </p>
-              )}
-            </div>
-          )}
-          
-          {/* Навигационные кнопки для предпросмотра */}
-          {stage.content.slides.length > 1 && (
-            <div className="flex justify-between mt-8">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={navigateToPrevSlide}
-                className="flex items-center gap-2"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span>Назад</span>
-              </Button>
-              <div className="text-sm text-muted-foreground">
-                {stage.content.slides.findIndex(s => s.id === selectedSlide.id) + 1} из {stage.content.slides.length}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={navigateToNextSlide}
-                className="flex items-center gap-2"
-              >
-                <span>Дальше</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                {getSlideTypeIcon(selectedSlide.type)}
-                <span>{getSlideTypeName(selectedSlide.type)}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {getSlideEditor(selectedSlide)}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
-  ) : (
-    <div className="flex-1 flex items-center justify-center text-muted-foreground p-6 text-center">
-      <div>
-        <p>Выберите слайд для редактирования или создайте новый</p>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="mt-2"
-          onClick={() => setShowAddDialog(true)}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Добавить слайд
-        </Button>
-      </div>
-    </div>
-  )
+  // Image handling
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, slideId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      // Upload image to server
+      const imageUrl = await uploadImage(file);
+      
+      // Update slide with new image URL
+      handleSlideChange(slideId, { url: imageUrl });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: error instanceof Error ? error.message : 'Ошибка при загрузке изображения',
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleImageUrlSubmit = async (url: string, slideId: string) => {
+    if (!url) return;
+    
+    try {
+      // Upload image from URL
+      const imageUrl = await uploadImageFromUrl(url);
+      
+      // Update slide with new image URL
+      handleSlideChange(slideId, { url: imageUrl });
+    } catch (error) {
+      console.error('Error uploading image from URL:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: error instanceof Error ? error.message : 'Ошибка при загрузке изображения по URL',
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <div className="h-full overflow-y-auto flex flex-col">
-      <div className="px-4 py-3 border-b flex justify-between items-center">
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAddDialog(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Добавить слайд
-          </Button>
+    <div className="flex flex-col h-full" ref={containerRef}>
+      {/* Add AI Generator button to the header */}
+      <div className="border-b p-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center">
+          <Presentation className="h-5 w-5 mr-2 text-muted-foreground" />
+          <h1 className="text-xl font-semibold">{stage.title}</h1>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPreviewMode(!previewMode)}
-            className={previewMode ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
+            onClick={() => setShowImportDialog(true)}
+            className="flex items-center"
           >
-            {previewMode ? (
-              <>
-                <Edit className="h-4 w-4 mr-2" />
-                Редактировать
-              </>
-            ) : (
-              <>
-                <Eye className="h-4 w-4 mr-2" />
-                Предпросмотр
-              </>
-            )}
+            <Upload className="h-4 w-4 mr-2" />
+            Импорт
           </Button>
           
-          {!previewMode && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleStartPreview}
-            >
-              <Maximize className="h-4 w-4 mr-2" />
-              Полноэкранный режим
-            </Button>
-          )}
+          {/* Add AI Generation button */}
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowAIGenerator(true)}
+            className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            AI Генерация
+          </Button>
         </div>
       </div>
       
-      <div className="flex-1 flex">
-        {/* Миниатюры слайдов */}
-        <div className="w-64 border-r overflow-y-auto">
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="slides">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="p-4 space-y-3"
-                >
-                  {stage.content.slides.map((slide, index) => (
-                    <Draggable
-                      key={slide.id}
-                      draggableId={slide.id}
-                      index={index}
-                    >
-                      {(provided) => (
-                        <Card
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={cn(
-                            "overflow-hidden",
-                            selectedSlide?.id === slide.id && "border-primary"
-                          )}
-                        >
-                          <CardHeader className="p-2 pb-0 flex-row items-center justify-between">
-                            <div
-                              {...provided.dragHandleProps}
-                              className="flex items-center"
-                            >
-                              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab mr-1" />
-                              <div className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded-md">
-                                {getSlideTypeIcon(slide.type)}
-                                <span>{getSlideTypeName(slide.type)}</span>
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteSlide(slide.id)
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </CardHeader>
-                          <CardContent className="p-0 cursor-pointer">
-                            <div
-                              onClick={() => setSelectedSlide(slide)}
-                              className="h-24"
-                            >
-                              {getSlidePreview(slide)}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                  
-                  {stage.content.slides.length === 0 && (
-                    <div className="text-center py-8 border rounded-lg bg-muted/30">
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Нет слайдов
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowAddDialog(true)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Добавить слайд
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-        </div>
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Slide list panel */}
+        <SlideList
+          slides={stage.content.slides}
+          selectedSlide={selectedSlide}
+          onSelectSlide={setSelectedSlide}
+          onDeleteSlide={handleDeleteSlide}
+          onAddSlideAt={handleAddSlideAt}
+          onShowAddDialog={() => {
+            setSlideToAddPosition(null);
+            setShowAddDialog(true);
+          }}
+          onShowImportDialog={() => setShowImportDialog(true)}
+          onDragEnd={handleDragEnd}
+          previewMode={previewMode}
+          onTogglePreviewMode={() => setPreviewMode(!previewMode)}
+          onStartFullscreenPreview={handleStartPreview}
+          onSetPreviewIndex={setCurrentPreviewSlideIndex}
+          showSlideMenu={showSlideMenu}
+          onToggleSlideMenu={setShowSlideMenu}
+          getSlidePreview={getSlidePreview}
+          getSlideTypeIcon={getSlideTypeIcon}
+          getSlideTypeName={getSlideTypeName}
+        />
         
-        {/* Редактор слайда или предпросмотр */}
-        <div className="flex-1 overflow-y-auto">
-          {previewMode ? (
-            <div className="p-8 max-w-3xl mx-auto">
-              {selectedSlide ? (
-                <div className="border rounded-lg p-8">
-                  {selectedSlide.type === 'text' && (
-                    <div className="prose max-w-none">
-                      <div dangerouslySetInnerHTML={{ __html: (selectedSlide as TextSlide).content }} />
-                    </div>
-                  )}
-                  
-                  {selectedSlide.type === 'video' && (
-                    <div className="space-y-4">
-                      <div className="aspect-video">
-                        <iframe
-                          src={(selectedSlide as VideoSlide).url.replace('watch?v=', 'embed/')}
-                          allowFullScreen
-                          className="w-full h-full rounded-lg"
-                        />
-                      </div>
-                      {(selectedSlide as VideoSlide).caption && (
-                        <p className="text-center text-muted-foreground">
-                          {(selectedSlide as VideoSlide).caption}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {selectedSlide.type === 'image' && (
-                    <div className="space-y-4">
-                      <div className="flex justify-center">
-                        <img
-                          src={(selectedSlide as ImageSlide).url}
-                          alt={(selectedSlide as ImageSlide).caption || ''}
-                          className="max-h-[400px] rounded-lg object-contain"
-                        />
-                      </div>
-                      {(selectedSlide as ImageSlide).caption && (
-                        <p className="text-center text-muted-foreground">
-                          {(selectedSlide as ImageSlide).caption}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {selectedSlide.type === 'test' && (
-                    <div className="space-y-6">
-                      <h3 className="text-xl font-medium text-center">
-                        {(selectedSlide as TestSlide).question}
-                      </h3>
-                      
-                      <div className="space-y-3">
-                        {(selectedSlide as TestSlide).options.map((option) => (
-                          <div 
-                            key={option.id} 
-                            className={cn(
-                              "flex items-center p-3 border rounded-md",
-                              option.isCorrect ? "bg-green-50 border-green-300" : ""
-                            )}
-                          >
-                            <div className="mr-3">
-                              {(selectedSlide as TestSlide).testType === 'single' ? (
-                                <div className={cn(
-                                  "h-5 w-5 rounded-full border flex items-center justify-center",
-                                  option.isCorrect ? "border-green-500 text-green-500" : "border-muted-foreground"
-                                )}>
-                                  {option.isCorrect && <Check className="h-3 w-3" />}
-                                </div>
-                              ) : (
-                                <div className={cn(
-                                  "h-5 w-5 rounded-sm border flex items-center justify-center",
-                                  option.isCorrect ? "border-green-500 text-green-500" : "border-muted-foreground"
-                                )}>
-                                  {option.isCorrect && <Check className="h-3 w-3" />}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              {option.text}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {(selectedSlide as TestSlide).explanation && (
-                        <div className="bg-muted p-4 rounded-lg">
-                          <p className="text-sm">{(selectedSlide as TestSlide).explanation}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">
-                    Выберите слайд для просмотра
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="p-6">
-              {selectedSlide ? (
-                getSlideEditor(selectedSlide)
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">
-                    Выберите слайд для редактирования или создайте новый
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowAddDialog(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Добавить слайд
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Main content area - either editor or preview */}
+        {previewMode ? (
+          <SlidePreview
+            selectedSlide={selectedSlide}
+            slides={stage.content.slides}
+            onSetPreviewMode={setPreviewMode}
+            onNavigateToNextSlide={navigateToNextSlide}
+            onNavigateToPrevSlide={navigateToPrevSlide}
+          />
+        ) : (
+          <SlideEditorView
+            selectedSlide={selectedSlide}
+            onShowAddDialog={() => {
+              setSlideToAddPosition(null);
+              setShowAddDialog(true);
+            }}
+            onSetPreviewMode={setPreviewMode}
+            onStartFullscreenPreview={handleStartPreview}
+            onChange={handleSlideChange}
+            onImageUrlSubmit={handleImageUrlSubmit}
+            onImageFileUpload={handleImageFileUpload}
+          />
+        )}
       </div>
       
-      {/* Диалог для добавления слайда */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Выберите тип слайда</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 p-4">
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center p-4 h-auto gap-2"
-              onClick={() => handleAddSlide('text')}
-            >
-              <FileText className="h-8 w-8 text-blue-500" />
-              <span>Текстовый слайд</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center p-4 h-auto gap-2"
-              onClick={() => handleAddSlide('image')}
-            >
-              <ImageIcon className="h-8 w-8 text-green-500" />
-              <span>Изображение</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center p-4 h-auto gap-2"
-              onClick={() => handleAddSlide('video')}
-            >
-              <Video className="h-8 w-8 text-red-500" />
-              <span>Видео</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center p-4 h-auto gap-2"
-              onClick={() => handleAddSlide('test')}
-            >
-              <HelpCircle className="h-8 w-8 text-orange-500" />
-              <span>Тест</span>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Dialogs */}
+      <AddSlideDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onAddSlide={handleAddSlide}
+      />
       
+      <ImportDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onScormImport={handleScormImport}
+        onPptxImport={handlePptxImport}
+        onPdfImport={handlePdfImport}
+        isImporting={isImporting}
+        importError={importError}
+      />
+      
+      {/* AI Generator Dialog */}
+      {showAIGenerator && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+          <div className="fixed inset-10 bg-background border rounded-lg shadow-lg flex flex-col overflow-hidden">
+            <PresentationAIGenerator 
+              stage={stage}
+              onChange={onChange}
+              onClose={() => setShowAIGenerator(false)}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Fullscreen preview */}
       {showFullscreenPreview && (
-        <FullscreenPreview />
+        <FullscreenPreview
+          slides={stage.content.slides}
+          currentSlideIndex={currentPreviewSlideIndex}
+          onClose={() => setShowFullscreenPreview(false)}
+          onNextSlide={nextSlide}
+          onPrevSlide={prevSlide}
+        />
       )}
     </div>
-  )
+  );
 } 

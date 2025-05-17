@@ -4,10 +4,38 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
 namespace AdaptationServer.Controllers;
+
+// DTO classes
+public class EmployeeTrackDTO
+{
+    public Guid TrackId { get; set; }
+    public Guid? MentorId { get; set; }
+    public DateTime AssignedDate { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? CompletedDate { get; set; }
+    public string Status { get; set; } = null!;
+}
+
+public class EmployeeDTO
+{
+    public required Guid Id { get; set; }
+    public string FullName { get; set; } = null!;
+    public string Email { get; set; } = null!;
+    public string? Phone { get; set; }
+    public required Guid? DepartmentId { get; set; }
+    public required Guid? PositionId { get; set; }
+    public required DateTime? HireDate { get; set; }
+    public required DateTime? LastLogin { get; set; }
+    public required string Role { get; set; }
+    public required Guid CurrentCompanyId { get; set; }
+    public required DateTime CreateAt { get; set; }
+    public required IEnumerable<EmployeeTrackDTO> AssignedTracks { get; set; } = [];
+}
 
 [ApiController]
 [Route("api/[controller]")]
@@ -24,8 +52,14 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("current")]
-    public async Task<ActionResult<User>> GetCurrentUser()
+    public async Task<ActionResult<EmployeeDTO>> GetCurrentUser()
     {
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
+        {
+            return BadRequest(new { message = "User does not have a current company" });
+        }
+
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
         {
@@ -34,6 +68,8 @@ public class UsersController : ControllerBase
 
         var user = await _context.Users
             .Include(u => u.CurrentCompany)
+            .Include(p => p.CompanyMemberships)
+            .Include(p => p.AssignedTracks)
             .FirstOrDefaultAsync(u => u.Id == userGuid);
 
         if (user == null)
@@ -41,19 +77,7 @@ public class UsersController : ControllerBase
             return NotFound(new { message = "User not found" });
         }
 
-        var companyMember = await _context.CompanyMembers
-            .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == user.CurrentCompanyId);
-
-        return Ok(new
-        {
-            id = user.Id.ToString(),
-            email = user.Email,
-            name = user.Name,
-            role = companyMember?.Role ?? "guest",
-            createdAt = user.CreatedAt.ToString("o"),
-            lastLogin = user.LastLogin?.ToString("o"),
-            currentCompanyId = user.CurrentCompanyId?.ToString()
-        });
+        return Ok(Map(user, companyId.Value));
     }
 
     [HttpGet]
@@ -65,114 +89,185 @@ public class UsersController : ControllerBase
             return BadRequest(new { message = "User does not have a current company" });
         }
 
-        var users = (await _context.Users
+        var employees = await _context.Users
+            .Where(u => u.CompanyMemberships.Any(cm => cm.CompanyProfileId == companyId.Value))
+            .Include(u => u.AssignedTracks)
             .Include(p => p.CompanyMemberships)
-            .Where(p => p.CompanyMemberships.Any(p => p.CompanyProfileId == companyId))
-            .ToListAsync())
-            .Select(u => new
-            {
-                id = u.Id.ToString(),
-                email = u.Email,
-                name = u.Name,
-                createdAt = u.CreatedAt.ToString("o"),
-                lastLogin = u.LastLogin?.ToString("o"),
-                currentCompanyId = u.CurrentCompanyId?.ToString(),
-                role = u.CompanyMemberships
-                    .First(p => p.CompanyProfileId == companyId)
-                    .Role
-            });
+            .ToListAsync();
 
-        return Ok(users);
+        return Ok(employees.Select(p => Map(p, companyId.Value)));
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<User>> GetUser(Guid id)
+    private EmployeeDTO Map(User u, Guid companyId)
     {
-        var user = await _context.Users.FindAsync(id);
-        if (user == null)
+        return new EmployeeDTO
         {
-            return NotFound(new { message = "User not found" });
-        }
+            Id = u.Id,
+            FullName = u.CompanyMemberships.First(p => p.CompanyProfileId == companyId).FullName ?? u.Name,
+            Email = u.Email!,
+            Phone = u.CompanyMemberships.First(p => p.CompanyProfileId == companyId).Phone,
+            DepartmentId = u.CompanyMemberships.First(p => p.CompanyProfileId == companyId).DepartmentId,
+            PositionId = u.CompanyMemberships.First(p => p.CompanyProfileId == companyId).PositionId,
+            HireDate = u.CompanyMemberships.First(p => p.CompanyProfileId == companyId).HireDate,
+            CreateAt = u.CreatedAt,
+            CurrentCompanyId = u.CurrentCompanyId.Value,
+            LastLogin = u.LastLogin,
+            Role = u.CompanyMemberships.First(p => p.CompanyProfileId == companyId).Role,
+            AssignedTracks = u.AssignedTracks.Select(t => new EmployeeTrackDTO
+            {
+                TrackId = t.TrackId,
+                MentorId = t.MentorId,
+                AssignedDate = t.AssignedDate,
+                StartDate = t.StartDate,
+                CompletedDate = t.CompletedDate,
+                Status = t.Status
+            })
+        };
+    }
 
-        // Get the user's role in their current company
-        string? role = null;
-        if (user.CurrentCompanyId.HasValue)
-        {
-            var companyMember = await _context.CompanyMembers
-                .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == user.CurrentCompanyId);
-            role = companyMember?.Role;
-        }
 
-        return Ok(new
+
+    private EmployeeDTO Map(User u, CompanyMember member, Guid companyId)
+    {
+        return new EmployeeDTO
         {
-            id = user.Id.ToString(),
-            email = user.Email,
-            name = user.Name,
-            role = role ?? "guest",
-            createdAt = user.CreatedAt.ToString("o"),
-            lastLogin = user.LastLogin?.ToString("o"),
-            currentCompanyId = user.CurrentCompanyId?.ToString()
-        });
+            Id = u.Id,
+            FullName = member.FullName ?? u.Name,
+            Email = u.Email!,
+            Phone = member.Phone,
+            DepartmentId = member.DepartmentId,
+            PositionId = member.PositionId,
+            HireDate = member.HireDate,
+            CreateAt = u.CreatedAt,
+            CurrentCompanyId = u.CurrentCompanyId.Value,
+            LastLogin = u.LastLogin,
+            Role = member.Role,
+            AssignedTracks = u.AssignedTracks.Select(t => new EmployeeTrackDTO
+            {
+                TrackId = t.TrackId,
+                MentorId = t.MentorId,
+                AssignedDate = t.AssignedDate,
+                StartDate = t.StartDate,
+                CompletedDate = t.CompletedDate,
+                Status = t.Status
+            })
+        };
     }
 
     [HttpPost]
-    public async Task<ActionResult<User>> CreateUser([FromBody] CreateUserRequest request)
+    public async Task<ActionResult<EmployeeDTO>> CreateUser([FromBody] CreateEmployeeRequest request)
     {
-        if (await _userManager.FindByEmailAsync(request.Email) != null)
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
         {
-            return BadRequest(new { message = "Email already exists" });
+            return BadRequest(new { message = "User does not have a current company" });
         }
 
-        var user = new User
+        // Verify position and department exist in the same company
+        if (request.PositionId.HasValue)
         {
-            UserName = request.Email,
-            Email = request.Email,
-            Name = request.Name,
-            CreatedAt = DateTime.UtcNow
-        };
+            var position = await _context.Positions
+                .FirstOrDefaultAsync(p => p.Id == request.PositionId.Value && p.CompanyProfileId == companyId.Value);
 
-        var guid = GenerateIdentityPassword();
-
-        var result = await _userManager.CreateAsync(user, guid);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new { message = "Failed to create user", errors = result.Errors });
-        }
-
-        // If company ID is provided, create the company membership
-        if (request.CompanyProfileId.HasValue)
-        {
-            var companyProfile = await _context.CompanyProfiles.FindAsync(request.CompanyProfileId.Value);
-            if (companyProfile != null)
+            if (position == null)
             {
-                var companyMember = new CompanyMember
-                {
-                    UserId = user.Id,
-                    CompanyProfileId = companyProfile.Id,
-                    Role = request.Role ?? "member",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                _context.CompanyMembers.Add(companyMember);
-
-                // Set as current company
-                user.CurrentCompanyId = companyProfile.Id;
-                _context.Entry(user).State = EntityState.Modified;
-
-                await _context.SaveChangesAsync();
+                return BadRequest(new { message = "Position not found" });
             }
         }
 
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, new
+        if (request.DepartmentId.HasValue)
         {
-            id = user.Id.ToString(),
-            email = user.Email,
-            name = user.Name,
-            role = request.Role ?? "guest",
-            createdAt = user.CreatedAt.ToString("o"),
-            currentCompanyId = user.CurrentCompanyId?.ToString()
-        });
+            var department = await _context.Departments
+                .FirstOrDefaultAsync(d => d.Id == request.DepartmentId.Value && d.CompanyProfileId == companyId.Value);
+
+            if (department == null)
+            {
+                return BadRequest(new { message = "Department not found" });
+            }
+        }
+
+        // Check if user with this email already exists
+        var existingUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == request.Email);
+
+        if (existingUser != null)
+        {
+            // Add user to company if not already a member
+            var existingMembership = await _context.CompanyMembers
+                .FirstOrDefaultAsync(cm => cm.UserId == existingUser.Id && cm.CompanyProfileId == companyId.Value);
+
+            if (existingMembership == null)
+            {
+                // Add user to company as an employee role
+                existingMembership = new CompanyMember
+                {
+                    UserId = existingUser.Id,
+                    CompanyProfileId = companyId.Value,
+                    Role = "employee",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    FullName = request.FullName,
+                    Phone = request.Phone,
+                    PositionId = request.PositionId,
+                    DepartmentId = request.DepartmentId,
+                    HireDate = request.HireDate.ToUniversalTime()
+                };
+
+                _context.CompanyMembers.Add(existingMembership);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(Map(existingUser, existingMembership, companyId.Value));
+        }
+        else
+        {
+            // Create a temporary password
+            var password = GenerateIdentityPassword();
+
+            // Create a new user account with employee information
+            var newUser = new User
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                Name = request.FullName,
+                CreatedAt = DateTime.UtcNow,
+                CurrentCompanyId = companyId.Value
+            };
+
+            var result = await _userManager.CreateAsync(newUser, password);
+
+            if (result.Succeeded)
+            {
+                // Add user to company as an employee
+                var membership = new CompanyMember
+                {
+                    UserId = newUser.Id,
+                    CompanyProfileId = companyId.Value,
+                    Role = "employee",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    FullName = request.FullName,
+                    Phone = request.Phone,
+                    PositionId = request.PositionId,
+                    DepartmentId = request.DepartmentId,
+                    HireDate = request.HireDate.ToUniversalTime(),
+                };
+
+                _context.CompanyMembers.Add(membership);
+                await _context.SaveChangesAsync();
+
+                // TODO: Send email with temporary password
+
+
+                return Ok(Map(newUser, membership, companyId.Value));
+            }
+            else
+            {
+                // Handle user creation error
+                return BadRequest(new { message = $"Failed to create user account: {string.Join(", ", result.Errors.Select(e => e.Description))}" });
+            }
+        }
     }
 
     private async Task<(Guid userId, Guid? companyId)> GetUserAndCompanyId()
@@ -217,59 +312,103 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserRequest request)
+    public async Task<ActionResult<EmployeeDTO>> UpdateUser(Guid id, [FromBody] UpdateEmployeeRequest request)
     {
-        var user = await _userManager.FindByIdAsync(id.ToString());
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
+        {
+            return BadRequest(new { message = "User does not have a current company" });
+        }
+
+        var user = await _context.Users
+            .Include(u => u.AssignedTracks)
+            .FirstOrDefaultAsync(u => u.Id == id &&
+                u.CompanyMemberships.Any(cm => cm.CompanyProfileId == companyId.Value));
+
         if (user == null)
         {
-            return NotFound(new { message = "User not found" });
+            return NotFound(new { message = "Employee not found" });
         }
 
-        user.Name = request.Name;
-        user.Email = request.Email;
-        user.UserName = request.Email;
-
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
+        // Verify position and department exist in the same company
+        if (request.PositionId.HasValue)
         {
-            return BadRequest(new { message = "Failed to update user", errors = result.Errors });
+            var position = await _context.Positions
+                .FirstOrDefaultAsync(p => p.Id == request.PositionId.Value && p.CompanyProfileId == companyId.Value);
+
+            if (position == null)
+            {
+                return BadRequest(new { message = "Position not found" });
+            }
         }
 
-        // Get the user's role in their current company
-        string? role = null;
-        if (user.CurrentCompanyId.HasValue)
+        if (request.DepartmentId.HasValue)
         {
-            var companyMember = await _context.CompanyMembers
-                .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == user.CurrentCompanyId);
-            role = companyMember?.Role;
+            var department = await _context.Departments
+                .FirstOrDefaultAsync(d => d.Id == request.DepartmentId.Value && d.CompanyProfileId == companyId.Value);
+
+            if (department == null)
+            {
+                return BadRequest(new { message = "Department not found" });
+            }
         }
 
-        return Ok(new
+        var existingMembership = await _context.CompanyMembers
+            .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == companyId.Value);
+        if (existingMembership == null)
         {
-            id = user.Id.ToString(),
-            email = user.Email,
-            name = user.Name,
-            role = role ?? "guest",
-            createdAt = user.CreatedAt.ToString("o"),
-            lastLogin = user.LastLogin?.ToString("o"),
-            currentCompanyId = user.CurrentCompanyId?.ToString()
-        });
+            return BadRequest(new { message = "Department not found" });
+        }
+
+        // Update user with new employee information
+        if (!string.IsNullOrEmpty(request.FullName))
+            existingMembership.FullName = request.FullName;
+
+        if (!string.IsNullOrEmpty(request.Phone))
+            existingMembership.Phone = request.Phone;
+
+        existingMembership.PositionId = request.PositionId;
+        existingMembership.DepartmentId = request.DepartmentId;
+
+        if (request.HireDate.HasValue)
+            existingMembership.HireDate = request.HireDate.Value.ToUniversalTime();
+
+        await _context.SaveChangesAsync();
+
+        return Ok(Map(user, existingMembership, companyId.Value));
     }
+
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
-        var user = await _userManager.FindByIdAsync(id.ToString());
-        if (user == null)
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
         {
-            return NotFound(new { message = "User not found" });
+            return BadRequest(new { message = "User does not have a current company" });
         }
 
-        var result = await _userManager.DeleteAsync(user);
-        if (!result.Succeeded)
+        // Get the company membership rather than the user
+        var membership = await _context.CompanyMembers
+            .FirstOrDefaultAsync(cm => cm.UserId == id && cm.CompanyProfileId == companyId.Value);
+
+        if (membership == null)
         {
-            return BadRequest(new { message = "Failed to delete user", errors = result.Errors });
+            return NotFound(new { message = "Employee not found in this company" });
         }
+
+        // Remove company membership (we don't delete the user)
+        _context.CompanyMembers.Remove(membership);
+
+        // Remove assigned tracks for this user in this company
+        var tracks = await _context.EmployeeTracks
+            .Include(et => et.Track)
+            .Where(et => et.UserId == id && et.Track.CompanyProfileId == companyId.Value)
+            .ToListAsync();
+
+        _context.EmployeeTracks.RemoveRange(tracks);
+
+        await _context.SaveChangesAsync();
 
         return NoContent();
     }
@@ -306,11 +445,6 @@ public class UsersController : ControllerBase
             return NotFound(new { message = "User not found" });
         }
 
-        if (!user.CurrentCompanyId.HasValue)
-        {
-            return BadRequest(new { message = "User does not have a current company" });
-        }
-
         var companyMember = await _context.CompanyMembers
             .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == user.CurrentCompanyId);
 
@@ -325,16 +459,7 @@ public class UsersController : ControllerBase
         _context.Entry(companyMember).State = EntityState.Modified;
         await _context.SaveChangesAsync();
 
-        return Ok(new
-        {
-            id = user.Id.ToString(),
-            email = user.Email,
-            name = user.Name,
-            role = companyMember.Role,
-            createdAt = user.CreatedAt.ToString("o"),
-            lastLogin = user.LastLogin?.ToString("o"),
-            currentCompanyId = user.CurrentCompanyId?.ToString()
-        });
+        return Ok();
     }
 
     private string GenerateRandomPassword()
@@ -350,6 +475,265 @@ public class UsersController : ControllerBase
 
         return new string(password);
     }
+
+
+    [HttpPost("{id}/track")]
+    public async Task<ActionResult<EmployeeDTO>> AssignTrack(Guid id, [FromBody] AssignTrackRequest request)
+    {
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
+        {
+            return BadRequest(new { message = "User does not have a current company" });
+        }
+
+        var user = await _context.Users
+            .Include(u => u.AssignedTracks)
+            .FirstOrDefaultAsync(u => u.Id == id &&
+                u.CompanyMemberships.Any(cm => cm.CompanyProfileId == companyId.Value));
+
+        if (user == null)
+        {
+            return NotFound(new { message = "Employee not found" });
+        }
+
+        var track = await _context.Tracks
+            .FirstOrDefaultAsync(t => t.Id == request.TrackId && t.CompanyProfileId == companyId.Value);
+
+        if (track == null)
+        {
+            return BadRequest(new { message = "Track not found or does not belong to this company" });
+        }
+
+        // Check if mentor exists in company if specified
+        if (request.MentorId.HasValue)
+        {
+            var mentorIsMember = await _context.CompanyMembers
+                .AnyAsync(cm => cm.UserId == request.MentorId && cm.CompanyProfileId == companyId.Value);
+
+            if (!mentorIsMember)
+            {
+                return BadRequest(new { message = "Mentor not found in this company" });
+            }
+        }
+
+        // Check if the track is already assigned to the employee
+        var existingTrack = user.AssignedTracks.FirstOrDefault(et => et.TrackId == request.TrackId);
+        if (existingTrack != null)
+        {
+            // Update mentor if needed
+            if (request.MentorId != existingTrack.MentorId)
+            {
+                existingTrack.MentorId = request.MentorId;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            // Create the new employee track association
+            var employeeTrack = new UserTrack
+            {
+                UserId = user.Id,
+                TrackId = track.Id,
+                MentorId = request.MentorId,
+                AssignedDate = DateTime.UtcNow,
+                StartDate = request.StartDate?.ToUniversalTime(),
+                Status = "in_progress"
+            };
+
+            _context.EmployeeTracks.Add(employeeTrack);
+            await _context.SaveChangesAsync();
+        }
+
+        // Reload user with tracks for response
+        await _context.Entry(user).ReloadAsync();
+        await _context.Entry(user).Collection(u => u.AssignedTracks).LoadAsync();
+
+        var existingMembership = await _context.CompanyMembers
+            .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == companyId.Value);
+
+        if (existingMembership == null)
+        {
+            return BadRequest(new { message = "Department not found" });
+        }
+
+        return Ok(Map(user, existingMembership, companyId.Value));
+    }
+
+    [HttpDelete("{id}/track/{trackId}")]
+    public async Task<ActionResult<EmployeeDTO>> RemoveTrack(Guid id, Guid trackId)
+    {
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
+        {
+            return BadRequest(new { message = "User does not have a current company" });
+        }
+
+        var user = await _context.Users
+            .Include(u => u.AssignedTracks)
+            .FirstOrDefaultAsync(u => u.Id == id &&
+                u.CompanyMemberships.Any(cm => cm.CompanyProfileId == companyId.Value));
+
+        if (user == null)
+        {
+            return NotFound(new { message = "Employee not found" });
+        }
+
+        // Find the track assignment
+        var employeeTrack = user.AssignedTracks.FirstOrDefault(et => et.TrackId == trackId);
+        if (employeeTrack == null)
+        {
+            return BadRequest(new { message = "Track is not assigned to this employee" });
+        }
+
+        _context.EmployeeTracks.Remove(employeeTrack);
+        await _context.SaveChangesAsync();
+
+        // Reload user with tracks for response
+        await _context.Entry(user).ReloadAsync();
+        await _context.Entry(user).Collection(u => u.AssignedTracks).LoadAsync();
+
+        var existingMembership = await _context.CompanyMembers
+            .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.CompanyProfileId == companyId.Value);
+
+        if (existingMembership == null)
+        {
+            return BadRequest(new { message = "Department not found" });
+        }
+
+        return Ok(Map(user, existingMembership, companyId.Value));
+    }
+
+    [HttpGet("{id}/tracks")]
+    public async Task<ActionResult<IEnumerable<EmployeeTrackDTO>>> GetEmployeeTracks(Guid id)
+    {
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
+        {
+            return BadRequest(new { message = "User does not have a current company" });
+        }
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id &&
+                u.CompanyMemberships.Any(cm => cm.CompanyProfileId == companyId.Value));
+
+        if (user == null)
+        {
+            return NotFound(new { message = "Employee not found" });
+        }
+
+        var employeeTracks = await _context.EmployeeTracks
+            .Include(et => et.Track)
+            .Where(et => et.UserId == id && et.Track.CompanyProfileId == companyId.Value)
+            .Select(t => new EmployeeTrackDTO
+            {
+                TrackId = t.TrackId,
+                MentorId = t.MentorId,
+                AssignedDate = t.AssignedDate,
+                StartDate = t.StartDate,
+                CompletedDate = t.CompletedDate,
+                Status = t.Status
+            })
+            .ToListAsync();
+
+        return Ok(employeeTracks);
+    }
+
+    [HttpPost("{id}/track/{trackId}/mentor")]
+    public async Task<ActionResult<EmployeeTrackDTO>> AssignMentorToTrack(Guid id, Guid trackId, [FromBody] AssignMentorRequest request)
+    {
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
+        {
+            return BadRequest(new { message = "User does not have a current company" });
+        }
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id &&
+                u.CompanyMemberships.Any(cm => cm.CompanyProfileId == companyId.Value));
+
+        if (user == null)
+        {
+            return NotFound(new { message = "Employee not found" });
+        }
+
+        var employeeTrack = await _context.EmployeeTracks
+            .Include(et => et.Track)
+            .Include(et => et.Mentor)
+            .FirstOrDefaultAsync(et => et.UserId == id && et.TrackId == trackId && et.Track.CompanyProfileId == companyId.Value);
+
+        if (employeeTrack == null)
+        {
+            return NotFound(new { message = "Track not assigned to this employee" });
+        }
+
+        // Verify mentor exists and is a member of the same company
+        var mentorIsMember = await _context.CompanyMembers
+            .AnyAsync(cm => cm.UserId == request.MentorId && cm.CompanyProfileId == companyId.Value);
+
+        if (!mentorIsMember)
+        {
+            return NotFound(new { message = "Mentor not found in this company" });
+        }
+
+        employeeTrack.MentorId = request.MentorId;
+        await _context.SaveChangesAsync();
+
+        var trackDto = new EmployeeTrackDTO
+        {
+            TrackId = employeeTrack.TrackId,
+            MentorId = employeeTrack.MentorId,
+            AssignedDate = employeeTrack.AssignedDate,
+            StartDate = employeeTrack.StartDate,
+            CompletedDate = employeeTrack.CompletedDate,
+            Status = employeeTrack.Status
+        };
+
+        return Ok(trackDto);
+    }
+
+    [HttpDelete("{id}/track/{trackId}/mentor")]
+    public async Task<ActionResult<EmployeeTrackDTO>> RemoveMentorFromTrack(Guid id, Guid trackId)
+    {
+        var (_, companyId) = await GetUserAndCompanyId();
+        if (!companyId.HasValue)
+        {
+            return BadRequest(new { message = "User does not have a current company" });
+        }
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id &&
+                u.CompanyMemberships.Any(cm => cm.CompanyProfileId == companyId.Value));
+
+        if (user == null)
+        {
+            return NotFound(new { message = "Employee not found" });
+        }
+
+        var employeeTrack = await _context.EmployeeTracks
+            .Include(et => et.Track)
+            .FirstOrDefaultAsync(et => et.UserId == id && et.TrackId == trackId && et.Track.CompanyProfileId == companyId.Value);
+
+        if (employeeTrack == null)
+        {
+            return NotFound(new { message = "Track not assigned to this employee" });
+        }
+
+        employeeTrack.MentorId = null;
+        await _context.SaveChangesAsync();
+
+        var trackDto = new EmployeeTrackDTO
+        {
+            TrackId = employeeTrack.TrackId,
+            MentorId = employeeTrack.MentorId,
+            AssignedDate = employeeTrack.AssignedDate,
+            StartDate = employeeTrack.StartDate,
+            CompletedDate = employeeTrack.CompletedDate,
+            Status = employeeTrack.Status
+        };
+
+        return Ok(trackDto);
+    }
 }
 
 public class CreateUserRequest
@@ -360,13 +744,50 @@ public class CreateUserRequest
     public Guid? CompanyProfileId { get; set; }
 }
 
-public class UpdateUserRequest
-{
-    public string Email { get; set; } = null!;
-    public string Name { get; set; } = null!;
-}
-
 public class ChangeRoleRequest
 {
     public string Role { get; set; } = null!;
+}
+
+public class CreateEmployeeRequest
+{
+    [Required]
+    public string FullName { get; set; } = null!;
+
+    public Guid? PositionId { get; set; }
+
+    public Guid? DepartmentId { get; set; }
+
+    [Required, EmailAddress]
+    public string Email { get; set; } = null!;
+
+    public string? Phone { get; set; }
+
+    public DateTime HireDate { get; set; }
+}
+
+public class UpdateEmployeeRequest
+{
+    public string? FullName { get; set; }
+    public Guid? PositionId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public string? Phone { get; set; }
+    public DateTime? HireDate { get; set; }
+}
+
+public class AssignTrackRequest
+{
+    public Guid TrackId { get; set; }
+    public DateTime? StartDate { get; set; }
+    public Guid? MentorId { get; set; }
+}
+
+public class AssignMentorRequest
+{
+    public Guid MentorId { get; set; }
+}
+
+public class AccessLinkResponse
+{
+    public string AccessLink { get; set; } = null!;
 }

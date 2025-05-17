@@ -43,7 +43,7 @@ export function PositionsTable() {
         <TableBody>
           {positions.map((position) => (
             <TableRow key={position.id}>
-              <TableCell>{position.title}</TableCell>
+              <TableCell>{position.name}</TableCell>
               <TableCell>{position.description}</TableCell>
               <TableCell>
                 <DropdownMenu>

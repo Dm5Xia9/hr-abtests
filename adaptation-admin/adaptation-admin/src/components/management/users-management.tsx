@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Pencil, Trash, RefreshCw, Link as LinkIcon } from 'lucide-react'
 import { UserDialog } from './user-dialog'
 import { ResetPasswordDialog } from './reset-password-dialog'
-import { User, UserRole } from '@/types'
+import { Employee, UserRole } from '@/types'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { 
@@ -38,19 +38,19 @@ export function UsersManagement() {
   const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [openResetDialog, setOpenResetDialog] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedUser, setSelectedUser] = useState<Employee | null>(null)
   
   const handleAddUser = () => {
     setSelectedUser(null)
     setOpenDialog(true)
   }
   
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: Employee) => {
     setSelectedUser(user)
     setOpenDialog(true)
   }
   
-  const handleDeleteClick = (user: User) => {
+  const handleDeleteClick = (user: Employee) => {
     setSelectedUser(user)
     setOpenDeleteDialog(true)
   }
@@ -62,7 +62,7 @@ export function UsersManagement() {
     }
   }
   
-  const handleResetClick = (user: User) => {
+  const handleResetClick = (user: Employee) => {
     setSelectedUser(user)
     setOpenResetDialog(true)
   }
@@ -79,11 +79,6 @@ export function UsersManagement() {
     changeUserRole(userId, role)
   }
 
-  const handleGetAccessLink = (userId: string) => {
-    const link = generateAccessLink(userId)
-    navigator.clipboard.writeText(link)
-    toast.success('Ссылка скопирована в буфер обмена')
-  }
 
   return (
     <div className="space-y-4">
@@ -110,7 +105,7 @@ export function UsersManagement() {
           <TableBody>
             {users.map(user => (
               <TableRow key={user.id}>
-                <TableCell>{user.name}</TableCell>
+                <TableCell>{user.fullName}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Select
@@ -124,11 +119,12 @@ export function UsersManagement() {
                       <SelectItem value="admin">Администратор</SelectItem>
                       <SelectItem value="manager">Руководитель</SelectItem>
                       <SelectItem value="observer">Наблюдатель</SelectItem>
+                      <SelectItem value="employee">Сотрудник</SelectItem>
                     </SelectContent>
                   </Select>
                 </TableCell>
                 <TableCell>
-                  {format(new Date(user.createdAt), 'dd.MM.yyyy', { locale: ru })}
+                  {format(new Date(user.createAt), 'dd.MM.yyyy', { locale: ru })}
                 </TableCell>
                 <TableCell>
                   {user.lastLogin ? format(new Date(user.lastLogin), 'dd.MM.yyyy HH:mm', { locale: ru }) : 'Не входил'}
@@ -165,12 +161,12 @@ export function UsersManagement() {
           <AlertDialogHeader>
             <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
             <AlertDialogDescription>
-              Это действие удалит пользователя {selectedUser?.name} и не может быть отменено.
+              Это действие удалит пользователя {selectedUser?.fullName} и не может быть отменено.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleConfirmDelete}>Удалить</AlertDialogAction>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleConfirmDelete}>Удалить</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -180,7 +176,7 @@ export function UsersManagement() {
           open={openResetDialog}
           onOpenChange={setOpenResetDialog}
           onConfirm={handleConfirmReset}
-          userName={selectedUser.name}
+          userName={selectedUser.fullName}
         />
       )}
     </div>

@@ -12,14 +12,14 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     {
     }
 
-    public DbSet<Employee> Employees { get; set; } = null!;
     public DbSet<Track> Tracks { get; set; } = null!;
     public DbSet<Article> Articles { get; set; } = null!;
-    public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<Department> Departments { get; set; } = null!;
     public DbSet<Position> Positions { get; set; } = null!;
     public DbSet<CompanyProfile> CompanyProfiles { get; set; } = null!;
     public DbSet<CompanyMember> CompanyMembers { get; set; } = null!;
+    public DbSet<UserTrack> EmployeeTracks { get; set; } = null!;
+    public DbSet<CalendarEvent> CalendarEvents { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -30,6 +30,12 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             .HasOne(u => u.CurrentCompany)
             .WithMany()
             .HasForeignKey(u => u.CurrentCompanyId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Entity<User>()
+            .HasMany(u => u.MentoredTracks)
+            .WithOne(et => et.Mentor)
+            .HasForeignKey(et => et.MentorId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // Configure CompanyProfile
@@ -61,40 +67,32 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             .HasMaxLength(20);
 
         // Configure Employee
-        builder.Entity<Employee>()
-            .HasOne(e => e.Mentor)
-            .WithMany()
-            .HasForeignKey(e => e.MentorId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        builder.Entity<Employee>()
-            .HasOne(e => e.AssignedTrack)
-            .WithMany()
-            .HasForeignKey(e => e.AssignedTrackId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        builder.Entity<Employee>()
+        builder.Entity<CompanyMember>()
             .HasOne(e => e.Department)
-            .WithMany(d => d.Employees)
+            .WithMany(d => d.Users)
             .HasForeignKey(e => e.DepartmentId)
             .HasPrincipalKey(d => d.Id)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Entity<Employee>()
+        builder.Entity<CompanyMember>()
             .HasOne(e => e.Position)
-            .WithMany(p => p.Employees)
+            .WithMany(p => p.Users)
             .HasForeignKey(e => e.PositionId)
             .HasPrincipalKey(p => p.Id)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Entity<Employee>()
-            .HasOne(e => e.CompanyProfile)
-            .WithMany()
-            .HasForeignKey(e => e.CompanyProfileId)
-            .OnDelete(DeleteBehavior.Restrict);
+        // Configure EmployeeTrack (many-to-many relationship)
+        builder.Entity<UserTrack>()
+            .HasOne(et => et.User)
+            .WithMany(e => e.AssignedTracks)
+            .HasForeignKey(et => et.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Entity<Employee>()
-            .Property(e => e.StepProgress);
+        builder.Entity<UserTrack>()
+            .HasOne(et => et.Track)
+            .WithMany(t => t.EmployeeTracks)
+            .HasForeignKey(et => et.TrackId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Configure Track and related entities
         builder.Entity<Track>()
@@ -102,6 +100,13 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             .WithMany()
             .HasForeignKey(t => t.CompanyProfileId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Configure CalendarEvent
+        builder.Entity<CalendarEvent>()
+            .HasOne(ce => ce.User)
+            .WithMany(u => u.CalendarEvents)
+            .HasForeignKey(ce => ce.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Configure Article
         builder.Entity<Article>()
@@ -135,21 +140,5 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             .HasIndex(p => p.Name)
             .IsUnique();
 
-        // Configure Notification
-        builder.Entity<Notification>()
-            .HasOne(n => n.Employee)
-            .WithMany(e => e.Notifications)
-            .HasForeignKey(n => n.EmployeeId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Entity<Notification>()
-            .HasOne(n => n.CompanyProfile)
-            .WithMany()
-            .HasForeignKey(n => n.CompanyProfileId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.Entity<Notification>()
-            .Property(n => n.Type)
-            .HasMaxLength(50);
     }
 }

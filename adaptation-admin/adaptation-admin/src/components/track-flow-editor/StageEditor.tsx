@@ -26,7 +26,9 @@ import {
   Calendar, 
   Coins, 
   CheckCircle, 
-  Clock 
+  Clock,
+  Settings,
+  Box
 } from 'lucide-react'
 import { Stage, PresentationStage, GoalStage, SurveyStage, MeetingStage, StageTypes, Milestone } from '@/types'
 import { cn } from '@/lib/utils'
@@ -64,6 +66,7 @@ interface StageEditorProps {
   milestone: Milestone
   onChange: (stage: Partial<Stage>) => void
   onBack: () => void
+  isLeftPanelVisible: boolean
 }
 
 // Add a new interface for stage status
@@ -73,7 +76,7 @@ interface StageStatus {
   completedBy?: string
 }
 
-export function StageEditor({ stage, milestone, onChange, onBack }: StageEditorProps) {
+export function StageEditor({ stage, milestone, onChange, onBack, isLeftPanelVisible }: StageEditorProps) {
   const [activeTab, setActiveTab] = useState('general')
   const [isCompletionAnimationVisible, setIsCompletionAnimationVisible] = useState(false)
 
@@ -172,11 +175,27 @@ export function StageEditor({ stage, milestone, onChange, onBack }: StageEditorP
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage.type]);
 
+  // Автоматически переключаем на вкладку general, если нет вкладки содержимого
+  useEffect(() => {
+    if (!hasContentTab() && activeTab === 'content') {
+      setActiveTab('general');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage.type, activeTab]);
+
   const StageIcon = STAGE_TYPES[stage.type].icon
   const stageColor = STAGE_TYPES[stage.type].color
 
+  // Функция для определения, нужна ли вкладка содержимого
+  const hasContentTab = () => {
+    return ['presentation', 'goal', 'survey', 'meeting'].includes(stage.type);
+  };
+
   return (
-    <div className="h-full flex flex-col">
+    <div className={cn(
+      "h-full flex flex-col transition-all duration-300",
+      !isLeftPanelVisible && "ml-4"
+    )}>
       {/* Coin reward animation - only shown briefly when completing a stage */}
       {isCompletionAnimationVisible && (
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
@@ -191,99 +210,102 @@ export function StageEditor({ stage, milestone, onChange, onBack }: StageEditorP
         </div>
       )}
 
-      <div className="px-6 py-4 border-b flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={onBack}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
+      <div className={cn(
+        "px-4 py-2 border-b flex items-center justify-between transition-all duration-300 ease-in-out",
+        !isLeftPanelVisible && "pl-8" // уменьшен отступ слева, когда панель свернута
+      )}>
+        <div className="flex items-center gap-3 flex-1">
           <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center",
+            "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0",
             stageColor
           )}>
-            <StageIcon className="h-5 w-5" />
+            <StageIcon className="h-4 w-4" />
           </div>
           <Input
             value={stage.title}
             onChange={(e) => handleCommonChange('title', e.target.value)}
             onDoubleClick={(e: React.MouseEvent<HTMLInputElement>) => e.currentTarget.select()}
-            className="text-xl font-medium h-10 flex-1 border-transparent bg-transparent focus:bg-background focus:border-input"
+            className="text-base font-medium h-8 border-transparent bg-transparent focus:bg-background focus:border-input w-full min-w-0"
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
-            <Coins className="h-4 w-4" />
-            <span className="font-medium">{stage.coinReward || 0}</span>
+        <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+          {hasContentTab() && (
+            <div className="flex h-7 bg-muted p-0.5 rounded-md">
+              <Button
+                type="button"
+                variant={activeTab === 'general' ? 'default' : 'ghost'} 
+                className="h-6 px-2 text-xs rounded-sm gap-1 flex items-center"
+                onClick={() => setActiveTab('general')}
+              >
+                <Settings className="h-3 w-3" />
+                <span className="sm:inline hidden">Основные</span>
+                <span className="sm:hidden inline">Осн.</span>
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === 'content' ? 'default' : 'ghost'}
+                className="h-6 px-2 text-xs rounded-sm gap-1 flex items-center"
+                onClick={() => setActiveTab('content')}
+              >
+                <Box className="h-3 w-3" />
+                <span className="sm:inline hidden">Содержимое</span>
+                <span className="sm:hidden inline">Сод.</span>
+              </Button>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+            <Coins className="h-3 w-3" />
+            <span className="text-sm font-medium">{stage.coinReward || 0}</span>
           </div>
 
           <Button
             variant={stageStatus.isCompleted ? "outline" : "default"}
             size="sm"
             className={cn(
-              "gap-2",
+              "gap-1 h-7 text-xs px-2",
               stageStatus.isCompleted && "border-green-500 text-green-600 bg-green-50 hover:bg-green-100 hover:text-green-700"
             )}
             onClick={() => handleStatusChange(!stageStatus.isCompleted)}
           >
             {stageStatus.isCompleted ? (
               <>
-                <CheckCircle className="h-4 w-4" />
-                Выполнено
+                <CheckCircle className="h-3 w-3" />
+                <span className="sm:inline hidden">Выполнено</span>
               </>
             ) : (
               <>
-                <Clock className="h-4 w-4" />
-                Отметить выполнение
+                <Clock className="h-3 w-3" />
+                <span className="sm:inline hidden">Отметить</span>
               </>
             )}
           </Button>
         </div>
       </div>
 
-      <Tabs 
-        defaultValue="general" 
-        value={activeTab} 
-        onValueChange={setActiveTab}
-        className="flex-1 flex flex-col"
-      >
-        <div className="border-b px-6">
-          <TabsList className="bg-transparent p-0">
-            <TabsTrigger 
-              value="general" 
-              className="py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-            >
-              Основные
-            </TabsTrigger>
-            <TabsTrigger 
-              value="content" 
-              className="py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-            >
-              Содержимое
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <div className="flex-1 overflow-auto">
-          <TabsContent value="general" className="px-6 py-4 h-full">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="description">Описание</Label>
+      <div className="flex-1 overflow-auto">
+        {activeTab === 'general' && (
+          <div className={cn(
+            "px-4 py-3 h-full transition-all duration-300 ease-in-out",
+            !isLeftPanelVisible && "pl-8" // уменьшен отступ слева, когда панель свернута
+          )}>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="description" className="text-sm">Описание</Label>
                 <Textarea
                   id="description"
                   value={stage.description}
                   onChange={(e) => handleCommonChange('description', e.target.value)}
-                  rows={4}
+                  rows={3}
                   placeholder="Введите описание этапа..."
+                  className="text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="coinReward" className="flex items-center gap-2">
-                  <Coins className="h-4 w-4 text-amber-500" />
+              <div className="space-y-1.5">
+                <Label htmlFor="coinReward" className="flex items-center gap-1.5 text-sm">
+                  <Coins className="h-3.5 w-3.5 text-amber-500" />
                   Награда за выполнение
                 </Label>
                 <div className="flex items-center gap-2">
@@ -294,9 +316,9 @@ export function StageEditor({ stage, milestone, onChange, onBack }: StageEditorP
                     max={1000}
                     value={stage.coinReward || 0}
                     onChange={(e) => handleCommonChange('coinReward', parseInt(e.target.value) || 0)}
-                    className="w-24"
+                    className="w-20 h-8 text-sm"
                   />
-                  <span className="text-sm text-muted-foreground">монет</span>
+                  <span className="text-xs text-muted-foreground">монет</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Количество монет, которое получит сотрудник за выполнение этого этапа
@@ -310,18 +332,24 @@ export function StageEditor({ stage, milestone, onChange, onBack }: StageEditorP
                   onCheckedChange={(checked) => 
                     handleCommonChange('required', !!checked)
                   }
+                  className="h-4 w-4"
                 />
                 <Label 
                   htmlFor="required"
-                  className="cursor-pointer"
+                  className="cursor-pointer text-sm"
                 >
                   Обязательный для прохождения
                 </Label>
               </div>
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="content" className="h-full">
+        {activeTab === 'content' && (
+          <div className={cn(
+            "h-full transition-all duration-300 ease-in-out",
+            !isLeftPanelVisible && "pl-8" // уменьшен отступ слева, когда панель свернута
+          )}>
             {stage.type === 'presentation' && (
               <PresentationEditor
                 stage={stage as PresentationStage}
@@ -359,22 +387,25 @@ export function StageEditor({ stage, milestone, onChange, onBack }: StageEditorP
                 onChange={(content) => onChange({ content })}
               />
             )}
-          </TabsContent>
-        </div>
-      </Tabs>
+          </div>
+        )}
+      </div>
 
       {/* Status card at the bottom */}
       {stageStatus.isCompleted && (
-        <div className="px-6 py-3 border-t bg-muted/30">
+        <div className={cn(
+          "px-4 py-2 border-t bg-muted/30 transition-all duration-300 ease-in-out",
+          !isLeftPanelVisible && "pl-8" // уменьшен отступ слева, когда панель свернута
+        )}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle className="h-4 w-4 text-green-600" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <CheckCircle className="h-3 w-3 text-green-600" />
               <span>
                 Выполнено: {stageStatus.completedAt ? new Date(stageStatus.completedAt).toLocaleString('ru-RU') : ''}
               </span>
             </div>
             {stageStatus.completedBy && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 {stageStatus.completedBy}
               </div>
             )}

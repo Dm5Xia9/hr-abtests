@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { motion, AnimatePresence } from 'framer-motion'
 import React from 'react'
 import { useTheme } from '@/components/theme-provider'
+import { Employee } from '@/types'
 
 declare global {
   interface Window {
@@ -28,8 +29,8 @@ declare global {
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('dimastd3@gmail.com')
+  const [password, setPassword] = useState('QAZqaz_123')
   const [name, setName] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -80,6 +81,23 @@ const AuthPage = () => {
     }
   }
 
+  // Helper function to convert API user to Employee
+  const convertUserToEmployee = (user: any): Employee => {
+    return {
+      id: user.id || crypto.randomUUID(),
+      fullName: user.name || '',
+      email: user.email || '',
+      role: user.role || 'employee',
+      departmentId: null,
+      positionId: null,
+      hireDate: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      currentCompanyId: '',
+      createAt: new Date().toISOString(),
+      assignedTracks: []
+    };
+  };
+
   const handleGoogleSignIn = async (response: any) => {
     try {
       setError(null)
@@ -91,8 +109,8 @@ const AuthPage = () => {
       // Set authentication token
       setAuthToken(token)
       
-      // Update user state
-      setUsers([user])
+      // Convert user to Employee and update state
+      setUsers([convertUserToEmployee(user)])
       
       // Redirect to company profile selection
       navigate('/company-profile')
@@ -144,8 +162,8 @@ const AuthPage = () => {
         // Set authentication token for future requests
         setAuthToken(token)
         
-        // Update user state
-        setUsers([user])
+        // Convert user to Employee and update state
+        setUsers([convertUserToEmployee(user)])
         
         // Redirect to company profile selection
         navigate('/company-profile')
@@ -161,33 +179,14 @@ const AuthPage = () => {
           // Set authentication token for future requests
           setAuthToken(token)
           
-          // Update user state
-          setUsers([user])
-          
-          // Создаем компанию автоматически
-          try {
-            // Создаем профиль компании
-            const newCompany = await apiClient.createCompanyProfile({
-              name: "Личная компания",
-              ownerId: user.id,
-              size: 'small',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            })
+          // Convert user to Employee and update state
+          setUsers([convertUserToEmployee(user)])
+        
+          const companyProfile = await apiClient.getCurrentCompanyProfile()
+
+          setCurrentCompanyProfile(companyProfile)
             
-            // Выбираем созданную компанию
-            const { companyProfile } = await apiClient.switchCompanyProfile(newCompany.id)
-            
-            // Обновляем текущую компанию в сторе
-            setCurrentCompanyProfile(companyProfile)
-            
-            // Переходим на главную страницу
-            navigate('/')
-          } catch (companyError) {
-            console.error('Ошибка при создании компании:', companyError)
-            // Если что-то пошло не так, перенаправляем на страницу выбора компании
-            navigate('/company-profile')
-          }
+          navigate('/')        
         } catch (registerError) {
           setError(registerError instanceof Error ? registerError.message : 'Ошибка при регистрации аккаунта')
         }

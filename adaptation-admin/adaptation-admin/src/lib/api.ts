@@ -2,11 +2,16 @@ import {
   Employee,
   Track,
   Article,
-  User,
   Position,
   Department,
   Notification,
-  CompanyProfile
+  CompanyProfile,
+  LoginRequest,
+  RegisterRequest,
+  AvailableTrack,
+  CurrentTrack,
+  StageProgress,
+  TrackProgress
 } from '@/types';
 
 /**
@@ -16,8 +21,15 @@ class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
 
-  constructor(baseUrl: string = 'https://localhost:7272/api') {
+  constructor(baseUrl: string = 'https://adaptation-api.hrtech.site/api') {
     this.baseUrl = baseUrl;
+  }
+
+  /**
+   * Возвращает базовый URL API
+   */
+  getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   /**
@@ -42,8 +54,12 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    // Get token from localStorage instead of using instance property
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    
+    console.log('Token:', token); 
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     return headers;
@@ -114,16 +130,16 @@ class ApiClient {
   }
 
   // Authentication
-  async login(email: string, password: string): Promise<{ token: string; user: User }> {
-    return this.request<{ token: string; user: User }>('/auth/login', 'POST', { email, password });
+  async login(email: string, password: string): Promise<{ token: string; user: LoginRequest }> {
+    return this.request<{ token: string; user: LoginRequest }>('/auth/login', 'POST', { email, password });
   }
 
-  async register(name: string, email: string, password: string): Promise<{ token: string; user: User }> {
-    return this.request<{ token: string; user: User }>('/auth/register', 'POST', { name, email, password });
+  async register(name: string, email: string, password: string): Promise<{ token: string; user: RegisterRequest }> {
+    return this.request<{ token: string; user: RegisterRequest }>('/auth/register', 'POST', { name, email, password });
   }
 
-  async loginWithGoogle(token: string): Promise<{ token: string; user: User }> {
-    return this.request<{ token: string; user: User }>('/auth/google', 'POST', { token });
+  async loginWithGoogle(token: string): Promise<{ token: string; user: any }> {
+    return this.request<{ token: string; user: any }>('/auth/google', 'POST', { token });
   }
 
   // Company Profiles
@@ -161,39 +177,27 @@ class ApiClient {
 
   // Employee endpoints
   async getEmployees(): Promise<Employee[]> {
-    return this.request<Employee[]>('/employees');
+    return this.request<Employee[]>('/users');
   }
 
   async getEmployee(id: string): Promise<Employee> {
-    return this.request<Employee>(`/employees/${id}`);
+    return this.request<Employee>(`/users/${id}`);
   }
 
   async createEmployee(employee: Omit<Employee, 'id' | 'adaptationStatus' | 'accessLink'>): Promise<Employee> {
-    return this.request<Employee>('/employees', 'POST', employee);
+    return this.request<Employee>('/users', 'POST', employee);
   }
 
   async updateEmployee(id: string, employee: Partial<Employee>): Promise<Employee> {
-    return this.request<Employee>(`/employees/${id}`, 'PUT', employee);
+    return this.request<Employee>(`/users/${id}`, 'PUT', employee);
   }
 
   async updateStepProgress(employeeId: string, stepId: string, completed: boolean): Promise<Employee> {
-    return this.request<Employee>(`/employees/${employeeId}/steps/${stepId}/progress`, 'PUT', { completed });
+    return this.request<Employee>(`/users/${employeeId}/steps/${stepId}/progress`, 'PUT', { completed });
   }
 
   async deleteEmployee(id: string): Promise<void> {
-    return this.request<void>(`/employees/${id}`, 'DELETE');
-  }
-
-  async assignMentor(employeeId: string, mentorId: string): Promise<Employee> {
-    return this.request<Employee>(`/employees/${employeeId}/mentor`, 'POST', { mentorId });
-  }
-
-  async removeMentor(employeeId: string): Promise<Employee> {
-    return this.request<Employee>(`/employees/${employeeId}/mentor`, 'DELETE');
-  }
-
-  async generateEmployeeAccessLink(employeeId: string): Promise<{ accessLink: string }> {
-    return this.request<{ accessLink: string }>(`/employees/${employeeId}/access-link`, 'POST');
+    return this.request<void>(`/users/${id}`, 'DELETE');
   }
 
   // Track endpoints
@@ -217,15 +221,52 @@ class ApiClient {
     return this.request<void>(`/tracks/${id}`, 'DELETE');
   }
 
-  async assignTrack(employeeId: string, trackId: string, startDate: string): Promise<Employee> {
-    return this.request<Employee>(`/employees/${employeeId}/track`, 'POST', { 
+  async assignTrack(employeeId: string, trackId: string, startDate: string, mentorId?: string): Promise<Employee> {
+    return this.request<Employee>(`/users/${employeeId}/track`, 'POST', { 
       trackId,
-      startDate
+      startDate,
+      mentorId
     });
   }
 
-  async removeEmployeeTrack(employeeId: string): Promise<Employee> {
-    return this.request<Employee>(`/employees/${employeeId}/track`, 'DELETE');
+  async removeEmployeeTrack(employeeId: string, trackId?: string): Promise<Employee> {
+    const endpoint = trackId 
+      ? `/users/${employeeId}/track/${trackId}` 
+      : `/users/${employeeId}/track`;
+    return this.request<Employee>(endpoint, 'DELETE');
+  }
+
+  // New Track API endpoints
+  /**
+   * Получение списка доступных треков, назначенных текущему пользователю
+   */
+  async getAvailableTracks(): Promise<AvailableTrack[]> {
+    return this.request<AvailableTrack[]>('/Tracks/available');
+  }
+
+  /**
+   * Получение детальной информации о текущем треке пользователя
+   */
+  async getCurrentTrack(): Promise<CurrentTrack> {
+    return this.request<CurrentTrack>('/Tracks/current');
+  }
+
+  /**
+   * Изменение текущего трека пользователя
+   * Если трек ещё не был начат, устанавливает дату начала и статус "in_progress"
+   * @param trackId ID трека, который необходимо установить как текущий
+   */
+  async setCurrentTrack(trackId: string): Promise<CurrentTrack> {
+    return this.request<CurrentTrack>('/Tracks/current', 'POST', { trackId });
+  }
+
+  /**
+   * Обновление прогресса по определенному этапу текущего трека
+   * @param stageId Идентификатор этапа
+   * @param content Информация о прогрессе по этапу
+   */
+  async updateTrackProgress(stageId: string, content: Partial<StageProgress>): Promise<void> {
+    return this.request<void>(`/Tracks/progress/${stageId}`, 'POST', { content });
   }
 
   // Article endpoints
@@ -250,36 +291,33 @@ class ApiClient {
   }
 
   // User endpoints
-  async getCurrentUser(): Promise<User> {
-    return this.request<User>('/users/current');
-  }
-
-  async getUsers(): Promise<User[]> {
-    return this.request<User[]>('/users');
-  }
-
-  async getUser(id: string): Promise<User> {
-    return this.request<User>(`/users/${id}`);
-  }
-
-  async createUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
-    return this.request<User>('/users', 'POST', user);
-  }
-
-  async updateUser(id: string, user: Partial<User>): Promise<User> {
-    return this.request<User>(`/users/${id}`, 'PUT', user);
-  }
-
-  async deleteUser(id: string): Promise<void> {
-    return this.request<void>(`/users/${id}`, 'DELETE');
+  async getCurrentUser(): Promise<Employee> {
+    return this.request<Employee>('/users/current');
   }
 
   async resetUserPassword(id: string): Promise<void> {
     return this.request<void>(`/users/${id}/reset-password`, 'POST');
   }
 
-  async changeUserRole(id: string, role: User['role']): Promise<User> {
-    return this.request<User>(`/users/${id}/role`, 'PUT', { role });
+  async changeUserRole(id: string, role: Employee['role']): Promise<Employee> {
+    return this.request<Employee>(`/users/${id}/role`, 'PUT', { role });
+  }
+
+  // Alias methods for Employee
+  async getCurrentEmployee(): Promise<Employee> {
+    return this.getCurrentUser();
+  }
+
+  async resetEmployeePassword(id: string): Promise<void> {
+    return this.resetUserPassword(id);
+  }
+
+  async changeEmployeeRole(id: string, role: Employee['role']): Promise<Employee> {
+    return this.changeUserRole(id, role);
+  }
+
+  async generateEmployeeAccessLink(employeeId: string): Promise<{ accessLink: string }> {
+    return this.request<{ accessLink: string }>(`/users/${employeeId}/access-link`, 'POST');
   }
 
   // Dictionary endpoints
@@ -331,9 +369,57 @@ class ApiClient {
   async deleteNotification(id: string): Promise<void> {
     return this.request<void>(`/notifications/${id}`, 'DELETE');
   }
+
+  /**
+   * Загружает изображение на сервер
+   * @param file Файл изображения
+   * @param folder Опциональная папка для сохранения (например, 'slides')
+   * @returns URL загруженного изображения
+   */
+  async uploadImage(file: File, folder: string = 'slides'): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+    
+    const options: RequestInit = {
+      method: 'POST',
+      headers: {
+        // Удаляем Content-Type, чтобы браузер сам установил правильный с boundary для FormData
+      },
+      body: formData
+    };
+    
+    // Добавляем токен авторизации если есть
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token) {
+      options.headers = {
+        'Authorization': `Bearer ${token}`
+      };
+    }
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/files/upload`, options);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Upload failed with status ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      throw error;
+    }
+  }
 }
 
+const BaseUrl = 'https://adaptation-api.hrtech.site/api'
+const DOMAIN = 'https://adaptation-api.hrtech.site'
 // Create a singleton instance
-const apiClient = new ApiClient();
+const apiClient = new ApiClient(
+  BaseUrl
+);
 
-export default apiClient; 
+export default apiClient;
+export { BaseUrl, DOMAIN };

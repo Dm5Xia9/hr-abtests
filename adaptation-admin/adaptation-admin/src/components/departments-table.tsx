@@ -43,7 +43,7 @@ export function DepartmentsTable() {
         <TableBody>
           {departments.map((department) => (
             <TableRow key={department.id}>
-              <TableCell>{department.title}</TableCell>
+              <TableCell>{department.name}</TableCell>
               <TableCell>{department.description}</TableCell>
               <TableCell>
                 <DropdownMenu>

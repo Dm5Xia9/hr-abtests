@@ -9,10 +9,11 @@ import { StageList } from './track-flow-editor/StageList'
 import { StageEditor } from './track-flow-editor/StageEditor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { PanelLeftClose, PanelLeft, Save, Edit, Check, Loader2 } from 'lucide-react'
+import { PanelLeftClose, PanelLeft, Save, Edit, Check, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { useStore } from '@/store/index'
+import { MilestoneStageList } from './track-flow-editor/MilestoneStageList'
 
 interface TrackFlowEditorProps {
   track: Track
@@ -41,8 +42,22 @@ export const TrackFlowEditor: React.FC<TrackFlowEditorProps> = ({
   const { toast } = useToast()
   const { createTrack, updateTrackContent, tracks } = useStore()
 
-  const selectedMilestone = track.milestones.find(m => m.id === selectedMilestoneId)
-  const selectedStage = selectedMilestone?.stages?.find(s => s.id === selectedStageId)
+  // Вспомогательная функция для определения текущей вехи для выбранного этапа
+  const getMilestoneForStage = (stageId: string | null) => {
+    if (!stageId) return null;
+    
+    for (const milestone of track.milestones) {
+      if (milestone.stages.some(stage => stage.id === stageId)) {
+        return milestone;
+      }
+    }
+    return null;
+  };
+
+  // Получаем текущую веху на основе выбранного этапа
+  const selectedMilestone = getMilestoneForStage(selectedStageId);
+  const selectedStage = selectedStageId && selectedMilestone ? 
+    selectedMilestone.stages.find(s => s.id === selectedStageId) : null;
 
   // Проверяем, существует ли трек в сторе (есть ли трек с таким же ID)
   const trackExistsInStore = tracks.some(t => t.id === track.id)
@@ -279,23 +294,25 @@ export const TrackFlowEditor: React.FC<TrackFlowEditorProps> = ({
   }
 
   const handleMilestoneDragEnd = (result: any) => {
-    if (!result.destination) return
+    console.log('Milestone drag end in TrackFlowEditor:', result);
+    if (!result.destination) return;
     
-    const items = Array.from(track.milestones)
-    const [reorderedItem] = items.splice(result.source.index, 1)
-    items.splice(result.destination.index, 0, reorderedItem)
+    const items = Array.from(track.milestones);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
     
-    handleTrackChange({ milestones: items })
+    handleTrackChange({ milestones: items });
   }
 
   const handleStageDragEnd = (result: any) => {
-    if (!result.destination || !selectedMilestone) return
+    console.log('Stage drag end in TrackFlowEditor:', result);
+    if (!result.destination || !selectedMilestone) return;
     
-    const items = Array.from(selectedMilestone.stages || [])
-    const [reorderedItem] = items.splice(result.source.index, 1)
-    items.splice(result.destination.index, 0, reorderedItem)
+    const items = Array.from(selectedMilestone.stages || []);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
     
-    handleMilestoneChange(selectedMilestone.id, { stages: items })
+    handleMilestoneChange(selectedMilestone.id, { stages: items });
   }
 
   const handleStageSelect = (stageId: string | null) => {
@@ -303,8 +320,10 @@ export const TrackFlowEditor: React.FC<TrackFlowEditorProps> = ({
   }
 
   const handleMilestoneSelect = (milestoneId: string | null) => {
-    setSelectedMilestoneId(milestoneId)
-    setSelectedStageId(null)
+    console.log('Milestone select was called, but we ignore it now and focus on stage selection only');
+    // Больше не используем выбор вехи
+    // setSelectedMilestoneId(milestoneId);
+    // setSelectedStageId(null);
   }
 
   // Функция форматирования времени последнего сохранения
@@ -410,75 +429,60 @@ export const TrackFlowEditor: React.FC<TrackFlowEditorProps> = ({
       
       {/* Основной контент */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Column - Milestones */}
-        <div className={cn(
-          "border-r h-full transition-all duration-300 ease-in-out",
-          isLeftPanelVisible ? "w-64" : "w-0 overflow-hidden"
-        )}>
-          <MilestoneList 
-            milestones={track.milestones}
-            selectedMilestoneId={selectedMilestoneId}
-            onMilestoneSelect={handleMilestoneSelect}
-            onDragEnd={handleMilestoneDragEnd}
-            onChange={handleTrackChange}
-          />
-        </div>
-        
-        {/* Middle Column - Stages */}
-        <div className={cn(
-          "border-r h-full transition-all duration-300 ease-in-out relative",
-          isLeftPanelVisible ? "w-80" : "w-0 overflow-hidden"
-        )}>
-          {selectedMilestone ? (
-            <>
-              <StageList
-                milestone={selectedMilestone}
-                selectedStageId={selectedStageId}
-                onStageSelect={handleStageSelect}
-                onDragEnd={handleStageDragEnd}
-                onChange={(updates) => handleMilestoneChange(selectedMilestone.id, updates)}
-              />
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground p-4 text-center">
-              Выберите веху в списке слева, чтобы увидеть и отредактировать её этапы
-            </div>
+        {/* Left Column - Combined Milestones and Stages */}
+        <div 
+          className={cn(
+            "h-full transition-all duration-300 ease-in-out relative", 
+            isLeftPanelVisible ? "w-[320px] border-r" : "w-2 border-r border-r-muted/30"
           )}
-        </div>
-        
-        {/* Toggle button positioned at center of screen */}
-        {selectedStage && (
+          role="region"
+          aria-label="Навигация по вехам и этапам"
+        >
+          {/* Визуальный индикатор для свернутой панели */}
+          {!isLeftPanelVisible && (
+            <div className="absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-muted/20 to-transparent" />
+          )}
+          
+          <div className={cn("h-full overflow-hidden transition-opacity", !isLeftPanelVisible && "opacity-0")}>
+            <MilestoneStageList
+              track={track}
+              selectedMilestoneId={selectedMilestoneId}
+              selectedStageId={selectedStageId}
+              onMilestoneSelect={handleMilestoneSelect}
+              onStageSelect={handleStageSelect}
+              onMilestoneDragEnd={handleMilestoneDragEnd}
+              onStageDragEnd={handleStageDragEnd}
+              onTrackChange={handleTrackChange}
+            />
+          </div>
+          
+          {/* Toggle button on the edge of the panel */}
           <div className={cn(
-            "fixed z-30 top-1/2 -translate-y-1/2 transition-all duration-300",
-            isLeftPanelVisible ? "left-[144px]" : "left-4"
+            "absolute top-4 z-10 group",
+            isLeftPanelVisible ? "-right-3" : "-right-10"
           )}>
             <Button 
               variant="outline" 
               size="icon" 
               className={cn(
-                "h-8 w-8 rounded-full shadow-md border",
-                isLeftPanelVisible && "translate-x-[0.25rem]"
+                "h-6 w-6 rounded-full shadow-sm border bg-background/90 backdrop-blur-sm transition-all",
+                isLeftPanelVisible ? "rotate-180 opacity-40 hover:opacity-100" : "opacity-70 hover:opacity-100"
               )}
               onClick={() => setIsLeftPanelVisible(prev => !prev)}
               title={isLeftPanelVisible ? "Скрыть панель навигации" : "Показать панель навигации"}
             >
-              {isLeftPanelVisible ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+              <ChevronLeft className="h-3 w-3" />
             </Button>
-            <span className={cn(
-              "absolute whitespace-nowrap bg-secondary rounded px-2 py-1 text-xs font-medium top-9 left-1/2 -translate-x-1/2 opacity-0 transition-opacity shadow-sm",
-              !isLeftPanelVisible && "opacity-100 delay-500"
-            )}>
-              {isLeftPanelVisible ? "" : "Панель скрыта"}
-            </span>
           </div>
-        )}
-
+        </div>
+        
         {/* Right Column - Stage Editor */}
-        <div className="flex-1 h-full overflow-auto">
+        <div className="flex-1 h-full overflow-auto relative">
           {selectedStage ? (
             <StageEditor
               stage={selectedStage}
               milestone={selectedMilestone!}
+              isLeftPanelVisible={isLeftPanelVisible}
               onChange={(updatedStage) => {
                 if (!selectedMilestone) return
                 

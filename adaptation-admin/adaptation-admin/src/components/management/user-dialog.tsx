@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useStore } from '@/store/index'
-import { User, UserRole } from '@/types'
+import { Employee, UserRole } from '@/types'
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import {
 interface UserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: User | null
+  user: Employee | null
 }
 
 export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
@@ -36,7 +36,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name,
+        name: user.fullName,
         email: user.email,
         role: user.role,
       })
@@ -65,9 +65,19 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
       updateUser({
         ...user,
         ...formData,
+        fullName: formData.name,
       })
     } else {
-      addUser(formData)
+      addUser({
+        ...formData,
+        fullName: formData.name,
+        departmentId: null,
+        positionId: null,
+        hireDate: new Date().toISOString(),
+        currentCompanyId: '',
+        createAt: new Date().toISOString(),
+        assignedTracks: []
+      })
     }
     
     onOpenChange(false)
@@ -120,6 +130,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                   <SelectItem value="admin">Администратор</SelectItem>
                   <SelectItem value="manager">Руководитель</SelectItem>
                   <SelectItem value="observer">Наблюдатель</SelectItem>
+                  <SelectItem value="employee">Сотрудник</SelectItem>
                 </SelectContent>
               </Select>
             </div>

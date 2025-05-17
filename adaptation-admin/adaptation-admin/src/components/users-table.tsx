@@ -24,6 +24,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Администратор',
   manager: 'Руководитель',
   observer: 'Наблюдатель',
+  employee: 'Сотрудник',
 }
 
 export function UsersTable() {

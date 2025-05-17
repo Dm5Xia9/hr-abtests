@@ -4,14 +4,14 @@ import {
   Employee, 
   Track, 
   Article, 
-  User, 
   UserRole, 
   Position, 
   Department,
   AdaptationStatus,
   Notification,
   NotificationType,
-  CompanyProfile
+  CompanyProfile,
+  StageProgress
 } from '@/types'
 import apiClient from '@/lib/api'
 
@@ -19,11 +19,11 @@ interface AppState {
   employees: Employee[]
   tracks: Track[]
   articles: Article[]
-  users: User[]
+  users: Employee[]
   positions: Position[]
   departments: Department[]
   notifications: Notification[]
-  currentUser: User | null
+  currentUser: Employee | null
   companyProfiles: CompanyProfile[]
   currentCompanyProfile: CompanyProfile | null
   
@@ -33,18 +33,16 @@ interface AppState {
   addEmployee: (employee: Omit<Employee, 'id' | 'adaptationStatus' | 'accessLink'>) => Promise<void>
   updateEmployee: (employee: Employee) => Promise<void>
   deleteEmployee: (id: string) => Promise<void>
-  assignMentor: (employeeId: string, mentorId: string) => Promise<void>
-  removeMentor: (employeeId: string) => Promise<void>
   generateAccessLink: (employeeId: string) => Promise<string>
-  updateStepProgress: (employeeId: string, stepId: string, completed: boolean) => Promise<void>
+  updateTrackProgress: (stageId: string, content: Partial<StageProgress>) => Promise<void>
   
   // Track methods
   setTracks: (tracks: Track[]) => void
   fetchTracks: () => Promise<void>
   createTrack: (track: Omit<Track, 'id'>) => Promise<void>
-  assignTrack: (employeeId: string, trackId: string, startDate: string) => Promise<void>
-  removeTrack: (employeeId: string) => Promise<void>
-  updateTrack: (employeeId: string, trackId: string, startDate: string) => Promise<void>
+  assignTrack: (employeeId: string, trackId: string, startDate: string, mentorId?: string) => Promise<void>
+  removeTrack: (employeeId: string, trackId: string) => Promise<void>
+  updateTrack: (employeeId: string, trackId: string, startDate: string, mentorId?: string) => Promise<void>
   updateTrackContent: (track: Track) => Promise<void>
 
   // Articles methods  
@@ -55,14 +53,14 @@ interface AppState {
   deleteArticle: (id: string) => Promise<void>
   
   // User methods
-  setUsers: (users: User[]) => void
+  setUsers: (users: Employee[]) => void
   fetchUsers: () => Promise<void>
-  addUser: (user: Omit<User, 'id' | 'createdAt'>) => Promise<void>
-  updateUser: (user: User) => Promise<void>
+  addUser: (user: Omit<Employee, 'id' | 'createdAt'>) => Promise<void>
+  updateUser: (user: Employee) => Promise<void>
   deleteUser: (id: string) => Promise<void>
   resetUserPassword: (id: string) => Promise<void>
   changeUserRole: (id: string, role: UserRole) => Promise<void>
-  setCurrentUser: (user: User | null) => void
+  setCurrentUser: (user: Employee | null) => void
   fetchCurrentUser: () => Promise<void>
   
   // Dictionary methods
@@ -154,40 +152,6 @@ export const useStore = create<AppState>()(
           throw error;
         }
       },
-      assignMentor: async (employeeId, mentorId) => {
-        try {
-          await apiClient.assignMentor(employeeId, mentorId);
-          const employees = await apiClient.getEmployees();
-          set({ employees });
-          
-          // Local notification addition
-          const employee = get().employees.find(e => e.id === employeeId);
-          const mentor = get().employees.find(e => e.id === mentorId);
-        
-          if (employee && mentor) {
-            get().addNotification({
-              type: 'mentor_assigned',
-              title: 'Назначен ментор',
-              message: `Сотруднику ${employee.fullName} назначен ментор: ${mentor.fullName}`,
-              employeeId,
-              data: { mentorId, mentorName: mentor.fullName }
-            });
-          }
-        } catch (error) {
-          console.error('Error assigning mentor:', error);
-          throw error;
-        }
-      },
-      removeMentor: async (employeeId) => {
-        try {
-          await apiClient.removeMentor(employeeId);
-          const employees = await apiClient.getEmployees();
-          set({ employees });
-        } catch (error) {
-          console.error('Error removing mentor:', error);
-          throw error;
-        }
-      },
       generateAccessLink: async (employeeId) => {
         try {
           const { accessLink } = await apiClient.generateEmployeeAccessLink(employeeId);
@@ -199,14 +163,9 @@ export const useStore = create<AppState>()(
           throw error;
         }
       },
-      updateStepProgress: async (employeeId, stepId, completed) => {
+      updateTrackProgress: async (stageId: string, content: Partial<StageProgress>) => {
         try {
-          const updatedEmployee = await apiClient.updateStepProgress(employeeId, stepId, completed);
-          set((state) => ({
-            employees: state.employees.map(emp => 
-              emp.id === employeeId ? updatedEmployee : emp
-            )
-          }));
+          await apiClient.updateTrackProgress(stageId, content);
         } catch (error) {
           console.error('Error updating step progress:', error);
           throw error;
@@ -234,9 +193,9 @@ export const useStore = create<AppState>()(
           throw error;
         }
       },
-      assignTrack: async (employeeId, trackId, startDate) => {
+      assignTrack: async (employeeId, trackId, startDate, mentorId) => {
         try {
-          await apiClient.assignTrack(employeeId, trackId, startDate);
+          await apiClient.assignTrack(employeeId, trackId, startDate, mentorId);
           const employees = await apiClient.getEmployees();
           set({ employees });
           
@@ -258,9 +217,9 @@ export const useStore = create<AppState>()(
           throw error;
         }
       },
-      removeTrack: async (employeeId) => {
+      removeTrack: async (employeeId, trackId) => {
         try {
-          await apiClient.removeEmployeeTrack(employeeId);
+          await apiClient.removeEmployeeTrack(employeeId, trackId);
           const employees = await apiClient.getEmployees();
           set({ employees });
         } catch (error) {
@@ -268,10 +227,9 @@ export const useStore = create<AppState>()(
           throw error;
         }
       },
-      updateTrack: async (employeeId, trackId, startDate) => {
+      updateTrack: async (employeeId, trackId, startDate, mentorId) => {
         try {
-          await apiClient.removeEmployeeTrack(employeeId);
-          await apiClient.assignTrack(employeeId, trackId, startDate);
+          await apiClient.assignTrack(employeeId, trackId, startDate, mentorId);
           const employees = await apiClient.getEmployees();
           set({ employees });
         } catch (error) {
@@ -336,7 +294,7 @@ export const useStore = create<AppState>()(
       setUsers: (users) => set({ users }),
       fetchUsers: async () => {
         try {
-          const users = await apiClient.getUsers();
+          const users = await apiClient.getEmployees();
           set({ users });
         } catch (error) {
           console.error('Error fetching users:', error);
@@ -345,8 +303,8 @@ export const useStore = create<AppState>()(
       },
       addUser: async (user) => {
         try {
-          await apiClient.createUser(user);
-          const users = await apiClient.getUsers();
+          await apiClient.createEmployee(user);
+          const users = await apiClient.getEmployees();
           set({ users });
         } catch (error) {
           console.error('Error adding user:', error);
@@ -355,8 +313,8 @@ export const useStore = create<AppState>()(
       },
       updateUser: async (updatedUser) => {
         try {
-          await apiClient.updateUser(updatedUser.id, updatedUser);
-          const users = await apiClient.getUsers();
+          await apiClient.updateEmployee(updatedUser.id, updatedUser);
+          const users = await apiClient.getEmployees();
           set({ users });
         } catch (error) {
           console.error('Error updating user:', error);
@@ -365,8 +323,8 @@ export const useStore = create<AppState>()(
       },
       deleteUser: async (id) => {
         try {
-          await apiClient.deleteUser(id);
-          const users = await apiClient.getUsers();
+          await apiClient.deleteEmployee(id);
+          const users = await apiClient.getEmployees();
           set({ users });
         } catch (error) {
           console.error('Error deleting user:', error);
@@ -375,7 +333,7 @@ export const useStore = create<AppState>()(
       },
       resetUserPassword: async (id) => {
         try {
-          await apiClient.resetUserPassword(id);
+          await apiClient.resetEmployeePassword(id);
           console.log(`Сброшен пароль для пользователя с ID ${id}`);
         } catch (error) {
           console.error('Error resetting password:', error);
@@ -384,8 +342,8 @@ export const useStore = create<AppState>()(
       },
       changeUserRole: async (id, role) => {
         try {
-          await apiClient.changeUserRole(id, role);
-          const users = await apiClient.getUsers();
+          await apiClient.changeEmployeeRole(id, role);
+          const users = await apiClient.getEmployees();
           set({ users });
         } catch (error) {
           console.error('Error changing user role:', error);
@@ -395,7 +353,7 @@ export const useStore = create<AppState>()(
       setCurrentUser: (user) => set({ currentUser: user }),
       fetchCurrentUser: async () => {
         try {
-          const user = await apiClient.getCurrentUser();
+          const user = await apiClient.getCurrentEmployee();
           set({ currentUser: user });
         } catch (error) {
           console.error('Error fetching current user:', error);

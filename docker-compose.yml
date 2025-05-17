@@ -1,44 +1,15 @@
 version: '3.8'
 
 services:
-  adaptation:
-    build:
-      context: ./adaptation
-    ports:
-      - "3000:80"
-    networks:
-      - hr-network
-  adaptation-lending:
-    build:
-      context: ./adaptation-lending
-    ports:
-      - "3002:80"
-    environment:
-      - IFRAME_URL=https://adaptation-demo.hrtech.site/
-    networks:
-      - hr-network
-
-  candidate-swiper-lending:
-    build:
-      context: ./candidate-swiper-lending
-    ports:
-      - "3003:80"
-    environment:
-      - IFRAME_URL=https://match-demo.hrtech.site/
-    networks:
-      - hr-network
-
   adaptation-admin:
-    build:
-      context: ./adaptation-admin/adaptation-admin
+    image: adaptation-admin
     ports:
       - "3004:80"
     networks:
       - hr-network
 
   adaptation-server:
-    build:
-      context: ./adaptation-server
+    image: adaptation-server
     ports:
       - "8080:80"
     environment:

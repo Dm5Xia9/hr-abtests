@@ -7,14 +7,16 @@ import { RemoveTrackDialog } from '@/components/remove-track-dialog'
 import { UpdateTrackDialog } from '@/components/update-track-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AssignMentor } from '@/components/assign-mentor'
-import { Link, User, FileText } from 'lucide-react'
+import { Link, User, FileText, PlayCircle } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
+import { useNavigate } from 'react-router-dom'
 
 export function EmployeesTable() {
   const { employees, tracks, users, positions, departments, generateAccessLink } = useStore()
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
   const [dialogAction, setDialogAction] = useState<'assign' | 'remove' | 'update' | 'mentor' | null>(null)
+  const navigate = useNavigate()
 
   const filteredEmployees = employees.filter((employee) => {
     if (statusFilter === 'all') return true
@@ -34,14 +36,26 @@ export function EmployeesTable() {
   const handleGetAccessLink = async (employeeId: string) => {
     try {
       const link = await generateAccessLink(employeeId)
-      await navigator.clipboard.writeText(link)
-      toast.success('Ссылка скопирована в буфер обмена')
+      const fullAccessUrl = `${window.location.origin}/access/${link}`
+      await navigator.clipboard.writeText(fullAccessUrl)
+      toast({
+        title: "Успешно",
+        description: "Ссылка скопирована в буфер обмена"
+      })
     } catch (error) {
       console.error('Failed to copy access link:', error)
-      toast.error('Не удалось скопировать ссылку')
+      toast({
+        title: "Ошибка",
+        description: "Не удалось скопировать ссылку",
+        variant: "destructive"
+      })
     }
   }
   
+  const navigateToTrackProgress = (employeeId: string) => {
+    navigate(`/track-progress/${employeeId}`)
+  }
+
   const selectedEmployee = selectedEmployeeId 
     ? employees.find(e => e.id === selectedEmployeeId) 
     : null
@@ -77,17 +91,31 @@ export function EmployeesTable() {
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <table className="w-full">
+      <div className="border rounded-md">
+        <table className="min-w-full divide-y divide-border">
           <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left text-sm font-medium">Полное имя</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Должность</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Подразделение</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Статус</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Трек</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Наставник</th>
-              <th className="px-4 py-3 text-right text-sm font-medium">Действия</th>
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                ФИО
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Должность
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Подразделение
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Статус адаптации
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Трек адаптации
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Наставник
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Действия
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -120,6 +148,16 @@ export function EmployeesTable() {
                       >
                         <Link className="h-4 w-4" />
                       </Button>
+                      {employee.assignedTrackId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigateToTrackProgress(employee.id)}
+                          title="Пройти трек адаптации"
+                        >
+                          <PlayCircle className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -131,35 +169,43 @@ export function EmployeesTable() {
                       >
                         <User className="h-4 w-4" />
                       </Button>
-                      {!employee.assignedTrackId ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAction(employee.id, 'assign')}
-                          title="Назначить трек"
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          Назначить трек
-                        </Button>
-                      ) : (
+                      {assignedTrack ? (
                         <>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleAction(employee.id, 'update')}
-                            title="Обновить трек"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleAction(employee.id, 'update')
+                            }}
+                            title="Изменить трек"
                           >
-                            Обновить
+                            <FileText className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="destructive"
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleAction(employee.id, 'remove')}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleAction(employee.id, 'remove')
+                            }}
                             title="Удалить трек"
                           >
-                            Удалить
+                            ✕
                           </Button>
                         </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleAction(employee.id, 'assign')
+                          }}
+                          title="Назначить трек"
+                        >
+                          +
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -177,7 +223,7 @@ export function EmployeesTable() {
           onClose={handleCloseDialog}
         />
       )}
-
+      
       {selectedEmployeeId && dialogAction === 'remove' && (
         <RemoveTrackDialog
           employeeId={selectedEmployeeId}
@@ -185,7 +231,7 @@ export function EmployeesTable() {
           onClose={handleCloseDialog}
         />
       )}
-
+      
       {selectedEmployeeId && dialogAction === 'update' && (
         <UpdateTrackDialog
           employeeId={selectedEmployeeId}

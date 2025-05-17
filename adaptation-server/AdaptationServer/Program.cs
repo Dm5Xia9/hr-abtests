@@ -92,7 +92,9 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not found")))
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not found"))),
+        // Set clock skew to zero so tokens expire exactly at token expiration time
+        ClockSkew = TimeSpan.Zero
     };
 });
 
@@ -194,7 +196,7 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
+app.MapGet("/api/notifications", () => new List<string>());
 //// Apply migrations at startup
 //using (var scope = app.Services.CreateScope())
 //{
@@ -258,7 +260,7 @@ public class CompanyRoleHandler : AuthorizationHandler<CompanyRoleRequirement>
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == userGuid);
 
-        if (user == null || !user.CurrentCompanyId.HasValue)
+        if (user == null)
         {
             return;
         }

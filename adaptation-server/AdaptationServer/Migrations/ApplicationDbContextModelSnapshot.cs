@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using AdaptationServer.Data;
-using AdaptationServer.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -67,6 +66,70 @@ namespace AdaptationServer.Migrations
                     b.ToTable("Articles");
                 });
 
+            modelBuilder.Entity("AdaptationServer.Models.CalendarEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("End")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsAllDay")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("MeetingType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("MeetingUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<List<string>>("Participants")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("ReminderSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("StageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Start")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CalendarEvents");
+                });
+
             modelBuilder.Entity("AdaptationServer.Models.CompanyMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -78,6 +141,23 @@ namespace AdaptationServer.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FullName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("HireDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("PositionId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -93,6 +173,10 @@ namespace AdaptationServer.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyProfileId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("PositionId");
 
                     b.HasIndex("UserId");
 
@@ -164,119 +248,6 @@ namespace AdaptationServer.Migrations
                         .IsUnique();
 
                     b.ToTable("Departments");
-                });
-
-            modelBuilder.Entity("AdaptationServer.Models.Employee", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AccessLink")
-                        .HasColumnType("text");
-
-                    b.Property<string>("AdaptationStatus")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid?>("AssignedTrackId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DepartmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("HireDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("MentorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid>("PositionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Dictionary<string, StepProgress>>("StepProgress")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedTrackId");
-
-                    b.HasIndex("CompanyProfileId");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("MentorId");
-
-                    b.HasIndex("PositionId");
-
-                    b.ToTable("Employees");
-                });
-
-            modelBuilder.Entity("AdaptationServer.Models.Notification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<JsonDocument>("Data")
-                        .HasColumnType("jsonb");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyProfileId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("AdaptationServer.Models.Position", b =>
@@ -355,6 +326,9 @@ namespace AdaptationServer.Migrations
                     b.Property<Guid?>("CurrentCompanyId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CurrentTrackId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -414,6 +388,50 @@ namespace AdaptationServer.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("AdaptationServer.Models.UserTrack", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssignedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("MentorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Dictionary<string, string>>("Steps")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MentorId");
+
+                    b.HasIndex("TrackId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EmployeeTracks");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
@@ -557,6 +575,17 @@ namespace AdaptationServer.Migrations
                     b.Navigation("CompanyProfile");
                 });
 
+            modelBuilder.Entity("AdaptationServer.Models.CalendarEvent", b =>
+                {
+                    b.HasOne("AdaptationServer.Models.User", "User")
+                        .WithMany("CalendarEvents")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("AdaptationServer.Models.CompanyMember", b =>
                 {
                     b.HasOne("AdaptationServer.Models.CompanyProfile", "CompanyProfile")
@@ -565,6 +594,16 @@ namespace AdaptationServer.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("AdaptationServer.Models.Department", "Department")
+                        .WithMany("Users")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AdaptationServer.Models.Position", "Position")
+                        .WithMany("Users")
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("AdaptationServer.Models.User", "User")
                         .WithMany("CompanyMemberships")
                         .HasForeignKey("UserId")
@@ -572,6 +611,10 @@ namespace AdaptationServer.Migrations
                         .IsRequired();
 
                     b.Navigation("CompanyProfile");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Position");
 
                     b.Navigation("User");
                 });
@@ -596,66 +639,6 @@ namespace AdaptationServer.Migrations
                         .IsRequired();
 
                     b.Navigation("CompanyProfile");
-                });
-
-            modelBuilder.Entity("AdaptationServer.Models.Employee", b =>
-                {
-                    b.HasOne("AdaptationServer.Models.Track", "AssignedTrack")
-                        .WithMany()
-                        .HasForeignKey("AssignedTrackId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("AdaptationServer.Models.CompanyProfile", "CompanyProfile")
-                        .WithMany()
-                        .HasForeignKey("CompanyProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("AdaptationServer.Models.Department", "Department")
-                        .WithMany("Employees")
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("AdaptationServer.Models.User", "Mentor")
-                        .WithMany()
-                        .HasForeignKey("MentorId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("AdaptationServer.Models.Position", "Position")
-                        .WithMany("Employees")
-                        .HasForeignKey("PositionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AssignedTrack");
-
-                    b.Navigation("CompanyProfile");
-
-                    b.Navigation("Department");
-
-                    b.Navigation("Mentor");
-
-                    b.Navigation("Position");
-                });
-
-            modelBuilder.Entity("AdaptationServer.Models.Notification", b =>
-                {
-                    b.HasOne("AdaptationServer.Models.CompanyProfile", "CompanyProfile")
-                        .WithMany()
-                        .HasForeignKey("CompanyProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("AdaptationServer.Models.Employee", "Employee")
-                        .WithMany("Notifications")
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CompanyProfile");
-
-                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("AdaptationServer.Models.Position", b =>
@@ -688,6 +671,32 @@ namespace AdaptationServer.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CurrentCompany");
+                });
+
+            modelBuilder.Entity("AdaptationServer.Models.UserTrack", b =>
+                {
+                    b.HasOne("AdaptationServer.Models.User", "Mentor")
+                        .WithMany("MentoredTracks")
+                        .HasForeignKey("MentorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AdaptationServer.Models.Track", "Track")
+                        .WithMany("EmployeeTracks")
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AdaptationServer.Models.User", "User")
+                        .WithMany("AssignedTracks")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Mentor");
+
+                    b.Navigation("Track");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -748,22 +757,28 @@ namespace AdaptationServer.Migrations
 
             modelBuilder.Entity("AdaptationServer.Models.Department", b =>
                 {
-                    b.Navigation("Employees");
-                });
-
-            modelBuilder.Entity("AdaptationServer.Models.Employee", b =>
-                {
-                    b.Navigation("Notifications");
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("AdaptationServer.Models.Position", b =>
                 {
-                    b.Navigation("Employees");
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("AdaptationServer.Models.Track", b =>
+                {
+                    b.Navigation("EmployeeTracks");
                 });
 
             modelBuilder.Entity("AdaptationServer.Models.User", b =>
                 {
+                    b.Navigation("AssignedTracks");
+
+                    b.Navigation("CalendarEvents");
+
                     b.Navigation("CompanyMemberships");
+
+                    b.Navigation("MentoredTracks");
                 });
 #pragma warning restore 612, 618
         }

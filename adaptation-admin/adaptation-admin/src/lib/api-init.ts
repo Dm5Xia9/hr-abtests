@@ -7,6 +7,7 @@ import apiClient from './api';
  */
 export async function initializeApp() {
   const {
+    getCurrentCompanyProfile,
     fetchEmployees,
     fetchTracks,
     fetchArticles,
@@ -18,6 +19,7 @@ export async function initializeApp() {
   } = useStore.getState();
 
   try {
+    await getCurrentCompanyProfile();
     // Load data in parallel
     await Promise.all([
       fetchEmployees(),

@@ -51,7 +51,7 @@ public class DepartmentsController : ControllerBase
 
         var department = await _context.Departments
             .FirstOrDefaultAsync(d => d.Id == id && d.CompanyProfileId == companyId.Value);
-            
+
         if (department == null)
         {
             return NotFound(new { message = "Department not found" });
@@ -98,7 +98,7 @@ public class DepartmentsController : ControllerBase
 
         var existingDepartment = await _context.Departments
             .FirstOrDefaultAsync(d => d.Id == id && d.CompanyProfileId == companyId.Value);
-            
+
         if (existingDepartment == null)
         {
             return NotFound(new { message = "Department not found" });
@@ -135,16 +135,16 @@ public class DepartmentsController : ControllerBase
 
         var department = await _context.Departments
             .FirstOrDefaultAsync(d => d.Id == id && d.CompanyProfileId == companyId.Value);
-            
+
         if (department == null)
         {
             return NotFound(new { message = "Department not found" });
         }
 
         // Check if department is in use
-        var isInUse = await _context.Employees
-            .AnyAsync(e => e.DepartmentId == id && e.CompanyProfileId == companyId.Value);
-            
+        var isInUse = await _context.CompanyMembers
+            .AnyAsync(e => e.DepartmentId == id);
+
         if (isInUse)
         {
             return BadRequest(new { message = "Cannot delete department that has employees" });

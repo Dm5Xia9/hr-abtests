@@ -151,6 +151,151 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "AdaptationServer.Controllers.CalendarEventsController",
+    "Method": "GetCalendarEvents",
+    "RelativePath": "api/CalendarEvents",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[AdaptationServer.Models.CalendarEvent, AdaptationServer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.CalendarEventsController",
+    "Method": "CreateCalendarEvent",
+    "RelativePath": "api/CalendarEvents",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "calendarEvent",
+        "Type": "AdaptationServer.Models.CalendarEvent",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Models.CalendarEvent",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.CalendarEventsController",
+    "Method": "GetCalendarEvent",
+    "RelativePath": "api/CalendarEvents/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Models.CalendarEvent",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.CalendarEventsController",
+    "Method": "UpdateCalendarEvent",
+    "RelativePath": "api/CalendarEvents/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "calendarEvent",
+        "Type": "AdaptationServer.Models.CalendarEvent",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.CalendarEventsController",
+    "Method": "DeleteCalendarEvent",
+    "RelativePath": "api/CalendarEvents/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.CalendarEventsController",
+    "Method": "GetCalendarEventsByDateRange",
+    "RelativePath": "api/CalendarEvents/by-date-range",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "start",
+        "Type": "System.DateTime",
+        "IsRequired": false
+      },
+      {
+        "Name": "end",
+        "Type": "System.DateTime",
+        "IsRequired": false
+      },
+      {
+        "Name": "view",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[AdaptationServer.Models.CalendarEvent, AdaptationServer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "AdaptationServer.Controllers.CompanyProfilesController",
     "Method": "GetCompanyProfiles",
     "RelativePath": "api/company-profiles",
@@ -412,17 +557,7 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
-    "ReturnTypes": [
-      {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[AdaptationServer.Models.Employee, AdaptationServer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
+    "ReturnTypes": []
   },
   {
     "ContainingType": "AdaptationServer.Controllers.EmployeesController",
@@ -434,21 +569,11 @@
     "Parameters": [
       {
         "Name": "request",
-        "Type": "AdaptationServer.Controllers.CreateEmployeeRequest",
+        "Type": "System.Object",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Models.Employee",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
+    "ReturnTypes": []
   },
   {
     "ContainingType": "AdaptationServer.Controllers.EmployeesController",
@@ -464,17 +589,7 @@
         "IsRequired": true
       }
     ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Models.Employee",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
+    "ReturnTypes": []
   },
   {
     "ContainingType": "AdaptationServer.Controllers.EmployeesController",
@@ -490,8 +605,8 @@
         "IsRequired": true
       },
       {
-        "Name": "employee",
-        "Type": "AdaptationServer.Models.Employee",
+        "Name": "request",
+        "Type": "System.Object",
         "IsRequired": true
       }
     ],
@@ -515,125 +630,6 @@
   },
   {
     "ContainingType": "AdaptationServer.Controllers.EmployeesController",
-    "Method": "GenerateAccessLink",
-    "RelativePath": "api/Employees/{id}/access-link",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Guid",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Controllers.AccessLinkResponse",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "AdaptationServer.Controllers.EmployeesController",
-    "Method": "AssignMentor",
-    "RelativePath": "api/Employees/{id}/mentor",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Guid",
-        "IsRequired": true
-      },
-      {
-        "Name": "request",
-        "Type": "AdaptationServer.Controllers.AssignMentorRequest",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Models.Employee",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "AdaptationServer.Controllers.EmployeesController",
-    "Method": "RemoveMentor",
-    "RelativePath": "api/Employees/{id}/mentor",
-    "HttpMethod": "DELETE",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Guid",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Models.Employee",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "AdaptationServer.Controllers.EmployeesController",
-    "Method": "SetProgress",
-    "RelativePath": "api/Employees/{id}/steps/{stepId}/progress",
-    "HttpMethod": "PUT",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Guid",
-        "IsRequired": true
-      },
-      {
-        "Name": "stepId",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "progress",
-        "Type": "AdaptationServer.Models.StepProgress",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Models.Employee",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "AdaptationServer.Controllers.EmployeesController",
     "Method": "AssignTrack",
     "RelativePath": "api/Employees/{id}/track",
     "HttpMethod": "POST",
@@ -647,26 +643,16 @@
       },
       {
         "Name": "request",
-        "Type": "AdaptationServer.Controllers.AssignTrackRequest",
+        "Type": "System.Object",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Models.Employee",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
+    "ReturnTypes": []
   },
   {
     "ContainingType": "AdaptationServer.Controllers.EmployeesController",
     "Method": "RemoveTrack",
-    "RelativePath": "api/Employees/{id}/track",
+    "RelativePath": "api/Employees/{id}/track/{trackId}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -675,47 +661,69 @@
         "Name": "id",
         "Type": "System.Guid",
         "IsRequired": true
+      },
+      {
+        "Name": "trackId",
+        "Type": "System.Guid",
+        "IsRequired": true
       }
     ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Models.Employee",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
+    "ReturnTypes": []
   },
   {
-    "ContainingType": "AdaptationServer.Controllers.NotificationsController",
-    "Method": "GetNotifications",
-    "RelativePath": "api/Notifications",
+    "ContainingType": "AdaptationServer.Controllers.EmployeesController",
+    "Method": "AssignMentorToTrack",
+    "RelativePath": "api/Employees/{id}/track/{trackId}/mentor",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "trackId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "System.Object",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.EmployeesController",
+    "Method": "RemoveMentorFromTrack",
+    "RelativePath": "api/Employees/{id}/track/{trackId}/mentor",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "trackId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.EmployeesController",
+    "Method": "GetEmployeeTracks",
+    "RelativePath": "api/Employees/{id}/tracks",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": [
-      {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[AdaptationServer.Models.Notification, AdaptationServer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "AdaptationServer.Controllers.NotificationsController",
-    "Method": "DeleteNotification",
-    "RelativePath": "api/Notifications/{id}",
-    "HttpMethod": "DELETE",
-    "IsController": true,
-    "Order": 0,
     "Parameters": [
       {
         "Name": "id",
@@ -726,40 +734,68 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "AdaptationServer.Controllers.NotificationsController",
-    "Method": "MarkAsRead",
-    "RelativePath": "api/Notifications/{id}/mark-as-read",
+    "ContainingType": "AdaptationServer.Controllers.FilesController",
+    "Method": "UploadFile",
+    "RelativePath": "api/files/upload",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
-        "Type": "System.Guid",
-        "IsRequired": true
+        "Name": "ContentType",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "ContentDisposition",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Headers",
+        "Type": "Microsoft.AspNetCore.Http.IHeaderDictionary",
+        "IsRequired": false
+      },
+      {
+        "Name": "Length",
+        "Type": "System.Int64",
+        "IsRequired": false
+      },
+      {
+        "Name": "Name",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "FileName",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "folder",
+        "Type": "System.String",
+        "IsRequired": false
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Program\u002B\u003C\u003Ec",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_10",
+    "RelativePath": "api/notifications",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": [
       {
-        "Type": "AdaptationServer.Models.Notification",
+        "Type": "System.Collections.Generic.List\u00601[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
+          "application/json"
         ],
         "StatusCode": 200
       }
     ]
-  },
-  {
-    "ContainingType": "AdaptationServer.Controllers.NotificationsController",
-    "Method": "MarkAllAsRead",
-    "RelativePath": "api/Notifications/mark-all-as-read",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
   },
   {
     "ContainingType": "AdaptationServer.Controllers.PositionsController",
@@ -980,6 +1016,114 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "AdaptationServer.Controllers.TracksController",
+    "Method": "GetAvailableTracks",
+    "RelativePath": "api/Tracks/available",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[AdaptationServer.Controllers.TrackBasicDTO, AdaptationServer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.TracksController",
+    "Method": "GetCurrentTrack",
+    "RelativePath": "api/Tracks/current",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Controllers.TrackDetailedDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.TracksController",
+    "Method": "ChangeCurrentTrack",
+    "RelativePath": "api/Tracks/current",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "AdaptationServer.Controllers.TracksController\u002BChangeCurrentTrackDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Controllers.TrackDetailedDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.TracksController",
+    "Method": "UpdateStepProgress",
+    "RelativePath": "api/Tracks/progress/{stageId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "stageId",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "AdaptationServer.Controllers.TracksController\u002BStepProgressUpdateDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.FilesController",
+    "Method": "Download",
+    "RelativePath": "api/uploads/{folder}/{file}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "folder",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "file",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "AdaptationServer.Controllers.UsersController",
     "Method": "GetUsers",
     "RelativePath": "api/Users",
@@ -1009,39 +1153,13 @@
     "Parameters": [
       {
         "Name": "request",
-        "Type": "AdaptationServer.Controllers.CreateUserRequest",
+        "Type": "AdaptationServer.Controllers.CreateEmployeeRequest",
         "IsRequired": true
       }
     ],
     "ReturnTypes": [
       {
-        "Type": "AdaptationServer.Models.User",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "AdaptationServer.Controllers.UsersController",
-    "Method": "GetUser",
-    "RelativePath": "api/Users/{id}",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Guid",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "AdaptationServer.Models.User",
+        "Type": "AdaptationServer.Controllers.EmployeeDTO",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -1066,11 +1184,21 @@
       },
       {
         "Name": "request",
-        "Type": "AdaptationServer.Controllers.UpdateUserRequest",
+        "Type": "AdaptationServer.Controllers.UpdateEmployeeRequest",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Controllers.EmployeeDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
     "ContainingType": "AdaptationServer.Controllers.UsersController",
@@ -1127,6 +1255,161 @@
   },
   {
     "ContainingType": "AdaptationServer.Controllers.UsersController",
+    "Method": "AssignTrack",
+    "RelativePath": "api/Users/{id}/track",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "AdaptationServer.Controllers.AssignTrackRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Controllers.EmployeeDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.UsersController",
+    "Method": "RemoveTrack",
+    "RelativePath": "api/Users/{id}/track/{trackId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "trackId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Controllers.EmployeeDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.UsersController",
+    "Method": "AssignMentorToTrack",
+    "RelativePath": "api/Users/{id}/track/{trackId}/mentor",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "trackId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "AdaptationServer.Controllers.AssignMentorRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Controllers.EmployeeTrackDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.UsersController",
+    "Method": "RemoveMentorFromTrack",
+    "RelativePath": "api/Users/{id}/track/{trackId}/mentor",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "trackId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "AdaptationServer.Controllers.EmployeeTrackDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.UsersController",
+    "Method": "GetEmployeeTracks",
+    "RelativePath": "api/Users/{id}/tracks",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[AdaptationServer.Controllers.EmployeeTrackDTO, AdaptationServer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AdaptationServer.Controllers.UsersController",
     "Method": "GetCurrentUser",
     "RelativePath": "api/Users/current",
     "HttpMethod": "GET",
@@ -1135,7 +1418,7 @@
     "Parameters": [],
     "ReturnTypes": [
       {
-        "Type": "AdaptationServer.Models.User",
+        "Type": "AdaptationServer.Controllers.EmployeeDTO",
         "MediaTypes": [
           "text/plain",
           "application/json",

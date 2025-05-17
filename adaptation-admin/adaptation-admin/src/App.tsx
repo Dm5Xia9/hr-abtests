@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useStore } from './store'
 import { initializeApp, loadStoredAuth } from './lib/api-init'
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from './components/theme-provider'
 import { Layout } from '@/components/layout'
 import { EmployeesPage } from '@/pages/employees'
 import { TracksPage } from '@/pages/tracks'
@@ -17,12 +17,16 @@ import { ManagementPage } from '@/pages/management'
 import { InputExamplesPage } from '@/pages/input-examples'
 import { MyMenteesPage } from '@/pages/my-mentees'
 import { NotificationsPage } from '@/pages/notifications'
+import { MobileNotificationsPage } from '@/pages/mobile-notifications'
+import { TrackProgressPage } from '@/pages/track-progress'
+import { EmployeeAccessPage } from '@/pages/employee-access'
 import AuthPage from '@/pages/Auth'
 import CompanyProfilePage from '@/pages/CompanyProfile'
-import { Toaster } from '@/components/toaster'
-import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from './components/toaster'
+import { TooltipProvider } from './components/ui/tooltip'
 import { TrackGamificationDashboard } from './components/track-gamification-dashboard'
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
+import EmployeeMeetingsPage from '@/pages/employee-meetings'
 
 // Auth guard component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -77,6 +81,11 @@ const RedirectIfAuthenticated = ({ children }: { children: React.ReactNode }) =>
     return <Navigate to="/" replace />
   }
   
+  return <>{children}</>
+}
+
+// Route for employee adaptation track progress
+const EmployeeRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
@@ -153,6 +162,9 @@ function App() {
             {/* Auth routes */}
             <Route path="/auth" element={<RedirectIfAuthenticated><AuthPage /></RedirectIfAuthenticated>} />
             <Route path="/company-profile" element={<CompanyProfileRoute><CompanyProfilePage /></CompanyProfileRoute>} />
+            
+            {/* Employee public access routes */}
+            <Route path="/access/:accessLink" element={<EmployeeAccessPage />} />
             
             {/* Protected routes inside layout */}
             <Route path="/" element={
@@ -259,6 +271,32 @@ function App() {
                   <TrackGamificationDashboard />
                 </Layout>
               </CompanyRequiredRoute>
+            } />
+            
+            {/* Mobile specific routes */}
+            <Route path="/mobile-notifications" element={
+              <EmployeeRoute>
+                <MobileNotificationsPage />
+              </EmployeeRoute>
+            } />
+            
+            {/* Employee meetings route */}
+            <Route path="/employee-meetings" element={
+              <EmployeeRoute>
+                <EmployeeMeetingsPage />
+              </EmployeeRoute>
+            } />
+            
+            {/* Backward compatibility for old calendar route */}
+            <Route path="/employee-calendar" element={
+              <Navigate to="/employee-meetings" replace />
+            } />
+            
+            {/* Employee track progress route */}
+            <Route path="/passage" element={
+              <EmployeeRoute>
+                <TrackProgressPage />
+              </EmployeeRoute>
             } />
           </Routes>
           <Toaster />

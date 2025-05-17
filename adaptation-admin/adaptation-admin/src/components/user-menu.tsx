@@ -91,12 +91,12 @@ export function UserMenu() {
   const getUserInitials = () => {
     if (!currentUser) return 'U'
     
-    const nameParts = currentUser.name.split(' ')
+    const nameParts = currentUser.fullName.split(' ')
     if (nameParts.length > 1) {
       return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
     }
     
-    return currentUser.name.substring(0, 2).toUpperCase()
+    return currentUser.fullName.substring(0, 2).toUpperCase()
   }
 
   // Получаем название роли пользователя
@@ -107,9 +107,9 @@ export function UserMenu() {
       case 'admin':
         return 'Администратор'
       case 'manager':
-        return 'Менеджер'
-      case 'observer':
-        return 'Наблюдатель'
+        return 'Руководитель'
+     case 'employee':
+        return 'Сотрудник'
       default:
         return 'Пользователь'
     }
@@ -128,7 +128,7 @@ export function UserMenu() {
               <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col items-start">
-              <span className="text-sm font-medium leading-none">{currentUser?.name || 'Пользователь'}</span>
+              <span className="text-sm font-medium leading-none">{currentUser?.fullName || 'Пользователь'}</span>
               {currentCompanyProfile && (
                 <span className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                   <Building className="h-3 w-3" />
@@ -149,7 +149,7 @@ export function UserMenu() {
             <AvatarFallback>{getUserInitials()}</AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium">{currentUser?.name}</div>
+            <div className="font-medium">{currentUser?.fullName}</div>
             <div className="text-xs text-muted-foreground">{currentUser?.email}</div>
             <div className="text-xs text-muted-foreground mt-1">{getUserRoleLabel()}</div>
           </div>
